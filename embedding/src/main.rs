@@ -25,7 +25,7 @@ struct StartupWithPos {
 }
 
 fn main() {
-    let startups = csv::Reader::from_path("yc_company_details.csv")
+    let startups = csv::Reader::from_path("../scraping/yc_company_details.csv")
         .unwrap()
         .deserialize::<Startup>()
         .map(|res| res.unwrap())
