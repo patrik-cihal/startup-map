@@ -2618,7 +2618,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "startup-map"
+name = "startup-map-embedding"
 version = "0.1.0"
 dependencies = [
  "csv",
@@ -3167,6 +3167,10 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "visualization"
+version = "0.1.0"
 
 [[package]]
 name = "want"
