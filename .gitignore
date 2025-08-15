@@ -1,2 +1,2 @@
-/target
-/.fastembed_cache
+**/target
+**/.fastembed_cache

@@ -22,6 +22,7 @@ struct StartupWithPos {
     tagline: String,
     pos_x: f32,
     pos_y: f32,
+    team_size: u32,
 }
 
 fn main() {
@@ -69,6 +70,7 @@ fn main() {
             tagline: s.tagline,
             pos_x: pos.0,
             pos_y: pos.1,
+            team_size: s.team_size.unwrap_or(0),
         })
         .collect::<Vec<_>>();
 
