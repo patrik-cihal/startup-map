@@ -18,6 +18,7 @@ struct Startup {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct StartupWithPos {
+    link: String,
     name: String,
     tagline: String,
     pos_x: f32,
@@ -67,6 +68,7 @@ fn main() {
         .into_iter()
         .zip(embeddings)
         .map(|(s, pos)| StartupWithPos {
+            link: s.company_link,
             name: s.name,
             tagline: s.tagline,
             pos_x: pos.0,
