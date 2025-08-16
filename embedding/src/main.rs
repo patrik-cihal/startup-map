@@ -64,7 +64,7 @@ fn main() {
         .map(|row| ((row[0] - min_val) / range, (row[1] - min_val) / range))
         .collect::<Vec<_>>();
 
-    let mut startups = startups
+    let startups = startups
         .into_iter()
         .zip(embeddings)
         .map(|(s, pos)| StartupWithPos {
