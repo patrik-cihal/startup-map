@@ -23,6 +23,7 @@ struct StartupWithPos {
     pos_x: f32,
     pos_y: f32,
     team_size: u32,
+    logo_url: String,
 }
 
 fn main() {
@@ -71,6 +72,12 @@ fn main() {
             pos_x: pos.0,
             pos_y: pos.1,
             team_size: s.team_size.unwrap_or(0),
+            logo_url: s
+                .logo_url
+                .split('?')
+                .next()
+                .unwrap_or(&s.logo_url)
+                .to_string(),
         })
         .collect::<Vec<_>>();
 
