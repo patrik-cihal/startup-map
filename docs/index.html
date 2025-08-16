@@ -5,14 +5,14 @@
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="UTF-8" />
-  <link rel="preload" as="script" href="/startup-map/assets/visualization-a60f0374b8a7c5c2.js" crossorigin><link rel="preload" as="fetch" type="application/wasm" href="/startup-map/assets/visualization_bg-1b5e85ad145531d3.wasm" crossorigin></head>
+  <link rel="preload" as="script" href="/startup-map/docs/assets/visualization-a60f0374b8a7c5c2.js" crossorigin><link rel="preload" as="fetch" type="application/wasm" href="/startup-map/docs/assets/visualization_bg-e05c157627a0e1ef.wasm" crossorigin></head>
   <body>
     <div id="main"></div>
   <script>
             // We can't use a module script here because we need to start the script immediately when streaming
-            import("/startup-map/assets/visualization-a60f0374b8a7c5c2.js").then(
+            import("/startup-map/docs/assets/visualization-a60f0374b8a7c5c2.js").then(
                 ({ default: init }) => {
-                init("/startup-map/assets/visualization_bg-1b5e85ad145531d3.wasm").then((wasm) => {
+                init("/startup-map/docs/assets/visualization_bg-e05c157627a0e1ef.wasm").then((wasm) => {
                     if (wasm.__wbindgen_start == undefined) {
                     wasm.main();
                     }
