@@ -54,8 +54,6 @@ fn app() -> Element {
         }
     });
 
-    info!("{zoom} {min_team_size}");
-
     // Smooth animation loop
     use_future(move || async move {
         loop {
@@ -157,7 +155,6 @@ fn app() -> Element {
                 target_offset_y.set(new_offset_y);
             },
 
-            {info!("{}", min_team_size())}
             div {
                 style: "transform-origin: 0 0; transform: translate({offset_x()}px, {offset_y()}px); width: 100%; height: 100%;",
                 for startup in startups.into_iter()
