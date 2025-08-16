@@ -7,13 +7,13 @@ const STARTUPS_CSV: &str = include_str!("../../embedding/startups.csv");
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct StartupWithPos {
+    link: String,
     name: String,
     tagline: String,
     pos_x: f32,
     pos_y: f32,
     team_size: u32,
     logo_url: String,
-    link: String,
 }
 
 fn main() {
