@@ -163,18 +163,18 @@ fn app() -> Element {
                         div {
                             style: "position: absolute; left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; transform: translate(-50%, -50%);",
                             // Logo image as clickable link
-                            a {
-                                href: "{startup.link}",
-                                target: "_blank",
-                                img {
-                                    src: "{startup.logo_url}",
-                                    style: "width: {(30.0 + ((startup.team_size+1) as f32).log10() * 5.0).min(50.0)}px; height: auto; display: block; margin: 0 auto 2px auto; border-radius: 4px;",
-                                    alt: "{startup.name} logo"
-                                }
+                            img {
+                                src: "{startup.logo_url}",
+                                style: "width: {(30.0 + ((startup.team_size+1) as f32).log10() * 5.0).min(50.0)}px; height: auto; display: block; margin: 0 auto 2px auto; border-radius: 4px;",
+                                alt: "{startup.name} logo"
                             }
                             p {
                                 style: "margin: 0; font-size: {(12.0 + ((startup.team_size+1) as f32).log10() * 2.0).min(24.0)}px; color: #333; white-space: nowrap;",
-                                strong { "{startup.name}" }
+                                a {
+                                    href: "{startup.link}",
+                                    target: "_blank",
+                                    strong { "{startup.name}" }
+                                }
                                 ": {startup.tagline}"
                             }
                         }
