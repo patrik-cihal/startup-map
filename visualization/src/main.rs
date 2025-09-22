@@ -46,8 +46,9 @@ fn app() -> Element {
     let min_team_size = use_memo(move || {
         let current_zoom = zoom();
         match current_zoom {
-            z if z < 1.0 => 4000,     // Large companies
-            z if z < 2.0 => 3000,     // Medium-large companies
+            z if z < 0.8 => 20000,    // Large companies
+            z if z < 1.5 => 4000,     // Large companies
+            z if z < 2.4 => 2500,     // Medium-large companies
             z if z < 5.0 => 1500,     // Medium companies
             z if z < 10.0 => 500,     // Small-medium companies
             z if z < 20.0 => 250,     // Small-medium companies
