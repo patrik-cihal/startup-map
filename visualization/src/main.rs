@@ -93,6 +93,7 @@ fn app() -> Element {
     });
 
     rsx! {
+        document::Title { "Startup Map" }
         div {
             style: "width: 100vw; height: 100vh; position: relative; overflow: hidden; margin: 0; padding: 0; cursor: grab;",
             onmousedown: move |evt| {
