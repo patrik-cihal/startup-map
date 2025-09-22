@@ -39,18 +39,22 @@ fn app() -> Element {
     let mut last_mouse_x = use_signal(|| 0.0f32);
     let mut last_mouse_y = use_signal(|| 0.0f32);
 
+    let mut left = use_signal(|| 0);
+    let mut right = use_signal(|| startups.len());
+    let mut abs_min_team_size = use_signal(|| 50);
+
     let min_team_size = use_memo(move || {
         let current_zoom = zoom();
         match current_zoom {
-            z if z < 1.0 => 4000, // Large companies
-            z if z < 2.0 => 3000, // Medium-large companies
-            z if z < 5.0 => 1500, // Medium companies
-            z if z < 10.0 => 500, // Small-medium companies
-            z if z < 20.0 => 250, // Small-medium companies
-            z if z < 30.0 => 100, // Small-medium companies
-            z if z < 40.0 => 50,  // Small-medium companies
-            z if z < 50.0 => 25,  // Small-medium companies
-            _ => 0,               // All companies when very zoomed in
+            z if z < 1.0 => 4000,     // Large companies
+            z if z < 2.0 => 3000,     // Medium-large companies
+            z if z < 5.0 => 1500,     // Medium companies
+            z if z < 10.0 => 500,     // Small-medium companies
+            z if z < 20.0 => 250,     // Small-medium companies
+            z if z < 30.0 => 100,     // Small-medium companies
+            z if z < 40.0 => 50,      // Small-medium companies
+            z if z < 50.0 => 25,      // Small-medium companies
+            _ => abs_min_team_size(), // All companies when very zoomed in
         }
     });
 
@@ -157,7 +161,7 @@ fn app() -> Element {
 
             div {
                 style: "transform-origin: 0 0; transform: translate({offset_x()}px, {offset_y()}px); width: 100%; height: 100%;",
-                for startup in startups.into_iter()
+                for (i, startup) in startups.into_iter().rev().enumerate().take(right()).skip(left())
                 {
                     if startup.team_size >= min_team_size() {
                         div {
@@ -173,14 +177,55 @@ fn app() -> Element {
                                 a {
                                     href: "{startup.link}",
                                     target: "_blank",
-                                    strong { "{startup.name}" }
+                                    strong { "{startup.name} [{i}]" }
                                 }
                                 ": {startup.tagline}"
+                            }
+                        }
+                    } else if startup.team_size >= abs_min_team_size() {
+                        div {
+                            style: "position: absolute; left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; transform: translate(-50%, -50%); width: 5px; height: 5px; background-color: #333; border-radius: 50%; opacity: 0.3;",
+                        }
+                    }
+                }
+            }
+            div {
+                style: "position: absolute; display: flex; flex-direction: column; gap: 5px; top: 20px; left: 20px;",
+                div {
+                    p { "Start Index" }
+                    input {
+                        value: left(),
+                        oninput: move |ev| {
+                            if let Ok(value) = ev.value().parse::<usize>() {
+                                left.set(value);
+                            }
+                        }
+                    }
+                }
+                div {
+                    p { "End Index" }
+                    input {
+                        value: right(),
+                        oninput: move |ev| {
+                            if let Ok(value) = ev.value().parse::<usize>() {
+                                right.set(value);
+                            }
+                        }
+                    }
+                }
+                div {
+                    p { "Minimum Team Size" }
+                    input {
+                        value: abs_min_team_size(),
+                        oninput: move |ev| {
+                            if let Ok(value) = ev.value().parse::<u32>() {
+                                abs_min_team_size.set(value);
                             }
                         }
                     }
                 }
             }
+
         }
     }
 }
