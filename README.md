@@ -18,6 +18,14 @@ This project creates an interactive map where Y Combinator startups are position
 - **Responsive Visualization**: Built with Rust and WebAssembly for smooth performance
 - **Dynamic Filtering**: Companies are filtered by team size based on zoom level for better readability
 
+## Screenshots
+
+![Whole Map](screenshots/whole_map.png)
+
+![Focused Map](screenshots/focused_map.png)
+
+![Zoomed Map](screenshots/zoomed_map.png)
+
 ## Architecture
 
 The project consists of three main components:
