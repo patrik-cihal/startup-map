@@ -1,9 +1,13 @@
+use std::time::Duration;
+
 use dioxus::logger::tracing::{error, info};
 use dioxus::prelude::*;
 use dioxus_elements::geometry::WheelDelta;
+use fastembed::TextEmbedding;
 use serde::{Deserialize, Serialize};
+use serde_json;
 
-const STARTUPS_CSV: &str = include_str!("../../embedding/startups.csv");
+const STARTUPS_JSON: &str = include_str!("../../embedding/startups.json");
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct StartupWithPos {
@@ -14,6 +18,7 @@ struct StartupWithPos {
     pos_y: f32,
     team_size: u32,
     logo_url: String,
+    embedding: Vec<f32>,
 }
 
 fn main() {
@@ -22,11 +27,56 @@ fn main() {
 
 #[component]
 fn app() -> Element {
-    let startups = use_hook(|| {
-        csv::Reader::from_reader(STARTUPS_CSV.as_bytes())
-            .deserialize::<StartupWithPos>()
-            .map(|res| res.unwrap())
-            .collect::<Vec<_>>()
+    let startups =
+        use_signal(|| serde_json::from_str::<Vec<StartupWithPos>>(STARTUPS_JSON).unwrap());
+
+    let mut search_text = use_signal(|| String::new());
+    let mut similarities = use_signal(|| vec![1.0; startups.len()]);
+
+    let startups_len = startups.len();
+    use_effect(move || {
+        let search = search_text();
+        info!(search);
+        if search.is_empty() {
+            similarities.set(vec![1.0; startups_len]);
+        } else {
+            let mut model = TextEmbedding::try_new(Default::default()).unwrap();
+            let search_vec = model.embed(vec![search], None).unwrap()[0].clone();
+            let new_similarities = startups
+                .iter()
+                .map(|s| {
+                    let dot: f32 = s
+                        .embedding
+                        .iter()
+                        .zip(&search_vec)
+                        .map(|(a, b)| a * b)
+                        .sum();
+                    let norm_s = s.embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+                    let norm_search = search_vec.iter().map(|x| x * x).sum::<f32>().sqrt();
+                    let similarity = dot / (norm_s * norm_search);
+                    similarity
+                })
+                .collect::<Vec<f32>>();
+
+            let min_similarity = new_similarities
+                .iter()
+                .fold(f32::INFINITY, |a, &b| a.min(b));
+            let max_similarity = new_similarities
+                .iter()
+                .fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+            let normalized_similarities = new_similarities
+                .into_iter()
+                .map(|sim| {
+                    if max_similarity > min_similarity {
+                        (sim - min_similarity) / (max_similarity - min_similarity)
+                    } else {
+                        0.0
+                    }
+                })
+                .collect::<Vec<f32>>();
+
+            similarities.set(normalized_similarities);
+        }
     });
 
     let mut zoom = use_signal(|| 1.0f32);
@@ -40,7 +90,7 @@ fn app() -> Element {
     let mut last_mouse_y = use_signal(|| 0.0f32);
 
     let mut left = use_signal(|| 0);
-    let mut right = use_signal(|| startups.len());
+    let mut right = use_signal(|| startups_len);
     let mut abs_min_team_size = use_signal(|| 50);
 
     let min_team_size = use_memo(move || {
@@ -89,7 +139,7 @@ fn app() -> Element {
                 offset_y.set(new_offset_y);
             }
 
-            gloo_timers::future::TimeoutFuture::new(32).await; // ~60 FPS
+            tokio::time::sleep(Duration::from_millis(32)).await; // ~60 FPS
         }
     });
 
@@ -163,7 +213,7 @@ fn app() -> Element {
 
             div {
                 style: "transform-origin: 0 0; transform: translate({offset_x()}px, {offset_y()}px); width: 100%; height: 100%;",
-                for (i, startup) in startups.into_iter().rev().enumerate().take(right()).skip(left())
+                for (i, (startup, similarity)) in startups().into_iter().zip(similarities()).rev().enumerate().take(right()).skip(left())
                 {
                     if startup.team_size >= min_team_size() {
                         div {
@@ -186,13 +236,23 @@ fn app() -> Element {
                         }
                     } else if startup.team_size >= abs_min_team_size() {
                         div {
-                            style: "position: absolute; left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; transform: translate(-50%, -50%); width: 5px; height: 5px; background-color: #333; border-radius: 50%; opacity: 0.3;",
+                            style: "position: absolute; left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; transform: translate(-50%, -50%); width: {((startup.team_size as f32).log10() * 2.0).max(2.0).min(8.0)}px; height: {((startup.team_size as f32).log10() * 2.0).max(2.0).min(8.0)}px; background-color: rgba(0, 0, 0, {similarity.powf(3.0)}); border-radius: 50%;",
+
                         }
                     }
                 }
             }
             div {
                 style: "position: absolute; display: flex; flex-direction: column; gap: 5px; top: 20px; left: 20px;",
+                div {
+                    p { "Search Startups Semantically" }
+                    input {
+                        r#type: "text",
+                        placeholder: "Food delivery startup",
+                        value: search_text(),
+                        onchange: move |ev| search_text.set(ev.value()),
+                    }
+                }
                 div {
                     p { "Start Index" }
                     input {

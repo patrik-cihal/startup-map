@@ -8,11 +8,11 @@ use async_openai::{
         CreateChatCompletionRequestArgs,
     },
 };
-use csv::Writer;
 use fastembed::TextEmbedding;
 use ndarray::Array2;
 use pacmap::{Configuration, fit_transform};
 use serde::{Deserialize, Serialize};
+use serde_json;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Startup {
@@ -34,6 +34,7 @@ struct StartupWithPos {
     pos_y: f32,
     team_size: u32,
     logo_url: String,
+    embedding: Vec<f32>,
 }
 
 const SYSTEM_PROMPT: &str = "You are an expert at writing clear, consistent startup taglines. Your task is to normalize startup taglines into a standard format that clearly describes what the company does, for whom, and how.
@@ -171,6 +172,8 @@ async fn main() {
     )
     .unwrap();
 
+    let high_dim_embeddings = embeddings.clone();
+
     let config = Configuration::builder().embedding_dimensions(2).build();
 
     let (embeddings, _) = fit_transform(embeddings.view(), config).unwrap();
@@ -191,27 +194,28 @@ async fn main() {
 
     let startups = normalized_startups
         .into_iter()
+        .zip(high_dim_embeddings.outer_iter())
         .zip(embeddings)
-        .map(|(s, pos)| StartupWithPos {
-            link: s.company_link,
-            name: s.name,
-            tagline: s.tagline,
-            pos_x: pos.0,
-            pos_y: pos.1,
-            team_size: s.team_size.unwrap_or(0),
-            logo_url: s
-                .logo_url
-                .split('?')
-                .next()
-                .unwrap_or(&s.logo_url)
-                .to_string(),
+        .map(|((s, emb), pos)| {
+            let embedding = emb.to_vec();
+            StartupWithPos {
+                link: s.company_link,
+                name: s.name,
+                tagline: s.tagline,
+                pos_x: pos.0,
+                pos_y: pos.1,
+                team_size: s.team_size.unwrap_or(0),
+                logo_url: s
+                    .logo_url
+                    .split('?')
+                    .next()
+                    .unwrap_or(&s.logo_url)
+                    .to_string(),
+                embedding,
+            }
         })
         .collect::<Vec<_>>();
 
-    let mut wtr = Writer::from_path("startups.csv").unwrap();
-
-    for startup in startups {
-        wtr.serialize(startup).unwrap();
-    }
-    wtr.flush().unwrap();
+    let json = serde_json::to_string_pretty(&startups).unwrap();
+    std::fs::write("startups.json", json).unwrap();
 }
