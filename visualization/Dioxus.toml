@@ -1,3 +1,9 @@
 [application]
+tailwind_input = "src/input.css"
+tailwind_output = "assets/tailwind.css"
+
 [web.app]
 base_path = "startup-map"
+
+[web.wasm_opt]
+level = "0"

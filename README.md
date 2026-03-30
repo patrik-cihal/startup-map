@@ -1,22 +1,25 @@
 # Startup Map
 
-README written by AI.
+An interactive visualization of Y Combinator startups plotted on a 2D semantic map based on their descriptions and similarities.
 
-An interactive visualization of Y Combinator startups plotted on a 2D map based on their descriptions and similarities.
-
-🌐 **Live Demo:** [https://patrik-cihal.github.io/startup-map](https://patrik-cihal.github.io/startup-map)
+**Live Demo:** [https://patrik-cihal.github.io/startup-map](https://patrik-cihal.github.io/startup-map)
 
 ## Overview
 
-This project creates an interactive map where Y Combinator startups are positioned based on semantic similarity of their descriptions. Companies with similar business models, target markets, or technologies appear closer together on the map.
+Y Combinator startups are positioned using AI embeddings so that companies with similar business models, target markets, or technologies appear closer together on the map.
 
 ## Features
 
-- **Interactive Map**: Pan, zoom, and explore thousands of Y Combinator startups
-- **Semantic Positioning**: Companies are positioned using AI embeddings and dimensionality reduction
-- **Company Details**: Click on any startup to view details including name, tagline, team size, and logo
-- **Responsive Visualization**: Built with Rust and WebAssembly for smooth performance
-- **Dynamic Filtering**: Companies are filtered by team size based on zoom level for better readability
+### Map Mode (Web + Desktop)
+- Pan, zoom, and explore thousands of startups
+- Companies filtered by team size based on zoom level
+- Smooth 60fps animations
+
+### Search Mode (Desktop only)
+- Vector similarity search powered by FastEmbed
+- Sort by team size or similarity score
+- Logarithmic team size filter, similarity threshold filter
+- Compact list view with rank, logo, name, tagline, team size, and match %
 
 ## Screenshots
 
@@ -28,139 +31,60 @@ This project creates an interactive map where Y Combinator startups are position
 
 ## Architecture
 
-The project consists of three main components:
+Three-stage pipeline: **scrape -> embed -> visualize**
 
-### 1. Data Scraping (`scraping/`)
-- **Language**: Python
-- **Purpose**: Scrapes Y Combinator company data including names, taglines, descriptions, and logos
-- **Files**:
-  - `scrape_links.py`: Extracts company links from YC directory
-  - `scrape_details.py`: Fetches detailed company information
-  - `requirements.txt`: Python dependencies
-
-### 2. Embedding & Processing (`embedding/`)
-- **Language**: Rust
-- **Purpose**: Processes company descriptions into 2D coordinates for visualization
-- **Key Features**:
-  - Uses OpenAI API to normalize company taglines
-  - Generates text embeddings using FastEmbed
-  - Reduces dimensions using PaCMAP algorithm
-  - Outputs CSV file with company positions
-
-### 3. Visualization (`visualization/`)
-- **Language**: Rust (Dioxus framework)
-- **Purpose**: Interactive web application for exploring the startup map
-- **Key Features**:
-  - WebAssembly-powered for smooth performance
-  - Pan and zoom controls
-  - Dynamic company filtering based on zoom level
-  - Company detail popups
+1. **Scraping** (`scraping/`) — Python with Selenium and BeautifulSoup extracts company data from the YC directory
+2. **Embedding** (`embedding/`) — Rust pipeline normalizes taglines (OpenAI), generates 384-dim embeddings (FastEmbed), reduces to 2D (PaCMAP), outputs `startups.json`
+3. **Visualization** (`visualization/`) — Dioxus 0.7 app with platform-specific builds:
+   - **Desktop**: Full app with Search + Map modes, local FastEmbed for vector search
+   - **Web/WASM**: Map mode only (deployed to GitHub Pages)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Rust (latest stable version)
-- Python 3.8+
-- OpenAI API key (for embedding generation)
+- Rust (latest stable)
+- Dioxus CLI (`cargo install dioxus-cli`)
+- Python 3.8+ (for scraping only)
+- OpenAI API key (for embedding pipeline only)
 
-### Setup
+### Run the Visualization
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/patrik-cihal/startup-map.git
-   cd startup-map
-   ```
-
-2. **Set up Python environment** (for scraping):
-   ```bash
-   cd scraping
-   pip install -r requirements.txt
-   ```
-
-3. **Set up environment variables** (for embedding):
-   ```bash
-   # Create .env file in the embedding directory
-   echo "OPENAI_API_KEY=your_api_key_here" > embedding/.env
-   ```
-
-### Running the Project
-
-#### 1. Scrape Company Data (Optional)
+**Desktop** (search + map):
 ```bash
-cd scraping
-python scrape_links.py      # Get company links
-python scrape_details.py    # Get detailed company info
+WEBKIT_DISABLE_DMABUF_RENDERER=1 cargo r --release -p visualization
 ```
 
-#### 2. Generate Embeddings and Positions
-```bash
-cd embedding
-cargo run --release
-```
-
-#### 3. Run the Visualization
+**Web** (map only):
 ```bash
 cd visualization
 dx serve --platform web
 ```
 
-The visualization will be available at `http://localhost:8080`.
-
-### Building for Production
-
-To build the WebAssembly version for deployment:
+### Full Pipeline
 
 ```bash
-cd visualization
-dx build --platform web --release
+# 1. Scrape (optional — data already included)
+cd scraping
+pip install -r requirements.txt
+python scrape_links.py
+python scrape_details.py
+
+# 2. Generate embeddings
+echo "OPENAI_API_KEY=your_key" > embedding/.env
+cargo r --release -p embedding
+
+# 3. Run visualization
+WEBKIT_DISABLE_DMABUF_RENDERER=1 cargo r --release -p visualization
 ```
 
-## Technology Stack
+## Tech Stack
 
-- **Frontend**: Dioxus (Rust web framework)
-- **WebAssembly**: For high-performance web rendering
-- **Embeddings**: FastEmbed for text embeddings
-- **Dimensionality Reduction**: PaCMAP algorithm
-- **Data Processing**: Rust with CSV handling
-- **Web Scraping**: Python with Selenium and BeautifulSoup
-- **AI Integration**: OpenAI API for tagline normalization
-
-## Data Pipeline
-
-1. **Scraping**: Extract company data from Y Combinator directory
-2. **Normalization**: Use OpenAI to standardize company taglines
-3. **Embedding**: Generate semantic embeddings for company descriptions
-4. **Dimensionality Reduction**: Use PaCMAP to create 2D coordinates
-5. **Visualization**: Render interactive map with WebAssembly
-
-## Configuration
-
-### Embedding Configuration
-- Model: Default FastEmbed model for text embeddings
-- Dimensionality reduction: PaCMAP with optimized parameters
-- Output format: CSV with company positions and metadata
-
-### Visualization Configuration
-- Zoom-based filtering for better performance
-- Company size thresholds for different zoom levels
-- Smooth pan/zoom animations
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Frontend**: Dioxus (Rust), Tailwind CSS v4, WebAssembly
+- **Embeddings**: FastEmbed (384-dim), PaCMAP (dimensionality reduction)
+- **Scraping**: Python, Selenium, BeautifulSoup
+- **AI**: OpenAI API (tagline normalization)
 
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
-
-## Acknowledgments
-
-- Y Combinator for providing startup data
-- OpenAI for embedding generation capabilities
-- The Rust community for excellent WebAssembly tooling
-- PaCMAP authors for the dimensionality reduction algorithm
