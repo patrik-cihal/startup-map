@@ -24,11 +24,10 @@ struct StartupWithPos {
     embedding: Vec<f32>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy, PartialEq)]
-enum AppMode {
+enum ViewMode {
+    List,
     Map,
-    Search,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -77,11 +76,11 @@ fn app() -> Element {
     #[cfg(not(target_arch = "wasm32"))]
     let committed_search = use_signal(|| String::new());
     #[cfg(not(target_arch = "wasm32"))]
-    let mut similarities = use_signal(|| vec![0.0f32; startups.len()]);
+    let mut similarities = use_signal(|| vec![1.0f32; startups.len()]);
     #[cfg(not(target_arch = "wasm32"))]
     let mut is_searching = use_signal(|| false);
     #[cfg(not(target_arch = "wasm32"))]
-    let mut mode = use_signal(|| AppMode::Search);
+    let view_mode = use_signal(|| ViewMode::List);
     #[cfg(not(target_arch = "wasm32"))]
     let sort_mode = use_signal(|| SortMode::TeamSize);
     #[cfg(not(target_arch = "wasm32"))]
@@ -95,7 +94,7 @@ fn app() -> Element {
         use_effect(move || {
             let search = committed_search();
             if search.is_empty() {
-                similarities.set(vec![0.0; startups_len]);
+                similarities.set(vec![1.0; startups_len]);
                 is_searching.set(false);
             } else {
                 is_searching.set(true);
@@ -162,9 +161,18 @@ fn app() -> Element {
         }
     });
 
-    let map_view = rsx! {
-        MapView {
+    #[cfg(not(target_arch = "wasm32"))]
+    let main_content = rsx! {
+        MainView {
             startups,
+            similarities,
+            search_query,
+            committed_search,
+            is_searching,
+            sort_mode,
+            min_team_size_filter,
+            min_similarity_filter,
+            view_mode,
             zoom,
             offset_x,
             offset_y,
@@ -176,51 +184,26 @@ fn app() -> Element {
             last_mouse_y,
         }
     };
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let is_map = mode() == AppMode::Map;
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let mode_toggle = rsx! {
-        div {
-            class: "flex p-0.5",
-            style: "background: rgba(0, 255, 170, 0.05); border: 1px solid rgba(0, 255, 170, 0.15); border-radius: 4px;",
-            div {
-                class: if !is_map { "px-5 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider" } else { "px-5 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider hover:text-emerald-300" },
-                style: if !is_map { "background: rgba(0, 255, 170, 0.15); color: #00ffaa; border-radius: 3px;" } else { "color: #a0a8a4;" },
-                onclick: move |_| mode.set(AppMode::Search),
-                "Search"
-            }
-            div {
-                class: if is_map { "px-5 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider" } else { "px-5 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider hover:text-emerald-300" },
-                style: if is_map { "background: rgba(0, 255, 170, 0.15); color: #00ffaa; border-radius: 3px;" } else { "color: #a0a8a4;" },
-                onclick: move |_| mode.set(AppMode::Map),
-                "Map"
-            }
+    #[cfg(target_arch = "wasm32")]
+    let main_content = rsx! {
+        MapView {
+            startups,
+            similarities: Signal::new(vec![]),
+            sort_by_similarity: false,
+            has_search: false,
+            min_team_size_filter: 0u32,
+            min_similarity_filter: 0.0f32,
+            zoom,
+            offset_x,
+            offset_y,
+            target_zoom,
+            target_offset_x,
+            target_offset_y,
+            is_dragging,
+            last_mouse_x,
+            last_mouse_y,
         }
     };
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let main_content = match mode() {
-        AppMode::Map => map_view,
-        AppMode::Search => rsx! {
-            SearchView {
-                startups,
-                similarities,
-                search_query,
-                committed_search,
-                is_searching,
-                sort_mode,
-                min_team_size_filter,
-                min_similarity_filter,
-            }
-        },
-    };
-    #[cfg(target_arch = "wasm32")]
-    let main_content = map_view;
-
-    #[cfg(target_arch = "wasm32")]
-    let mode_toggle = rsx! {};
 
     rsx! {
         document::Title { "Startup Map" }
@@ -241,8 +224,6 @@ fn app() -> Element {
                     style: "color: #00ffaa;",
                     "// startup_map"
                 }
-
-                {mode_toggle}
 
                 // Status indicator
                 div {
@@ -267,6 +248,11 @@ fn app() -> Element {
 #[component]
 fn MapView(
     startups: Signal<Vec<StartupWithPos>>,
+    similarities: Signal<Vec<f32>>,
+    sort_by_similarity: bool,
+    has_search: bool,
+    min_team_size_filter: u32,
+    min_similarity_filter: f32,
     mut zoom: Signal<f32>,
     mut offset_x: Signal<f32>,
     mut offset_y: Signal<f32>,
@@ -295,6 +281,7 @@ fn MapView(
         div {
             class: "flex-1 relative overflow-hidden cursor-grab",
             style: "background: #060a06;",
+
             onmousedown: move |evt| {
                 is_dragging.set(true);
                 last_mouse_x.set(evt.client_coordinates().x as f32);
@@ -345,61 +332,98 @@ fn MapView(
             div {
                 class: "w-full h-full origin-top-left",
                 style: "transform: translate({offset_x()}px, {offset_y()}px);",
-                for startup in startups().into_iter().rev() {
-                    if startup.team_size >= min_team_size() {
-                        {
-                            let logo_size = (30.0 + ((startup.team_size + 1) as f32).log10() * 5.0).min(50.0);
-                            let font_size = (12.0 + ((startup.team_size + 1) as f32).log10() * 2.0).min(20.0);
-                            rsx! {
-                                div {
-                                    class: "absolute -translate-x-1/2 -translate-y-1/2",
-                                    style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%;",
-                                    img {
-                                        src: "{startup.logo_url}",
-                                        class: "block mx-auto mb-0.5 rounded-md",
-                                        style: "width: {logo_size}px; height: auto;",
-                                        alt: "{startup.name}"
-                                    }
-                                    p {
-                                        class: "m-0 whitespace-nowrap",
-                                        style: "font-size: {font_size}px;",
-                                        a {
-                                            href: "{startup.link}",
-                                            target: "_blank",
-                                            class: "font-medium no-underline transition-colors",
-                                            style: "color: #e0e4e2; font-family: 'JetBrains Mono', monospace;",
-                                            onmouseenter: move |_| {},
-                                            "{startup.name}"
-                                        }
-                                        span {
-                                            class: "font-normal",
-                                            style: "color: #9a9fa0;",
-                                            " {startup.tagline}"
-                                        }
-                                    }
-                                }
+                {
+                    let sims = similarities();
+                    let all_startups = startups();
+
+                    // Build filtered + sorted index list
+                    let mut indexed: Vec<(usize, f32)> = all_startups.iter().enumerate()
+                        .map(|(i, _)| (i, sims.get(i).copied().unwrap_or(1.0)))
+                        .filter(|(i, sim)| {
+                            let ts = all_startups[*i].team_size;
+                            if sort_by_similarity {
+                                ts >= min_team_size_filter
+                            } else if has_search {
+                                *sim >= min_similarity_filter
+                            } else {
+                                true
                             }
-                        }
-                    } else if startup.team_size >= 25 {
-                        {
-                            let dot_size = ((startup.team_size as f32).log10() * 2.0).max(2.0).min(8.0);
-                            rsx! {
-                                div {
-                                    class: "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-                                    style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; width: {dot_size}px; height: {dot_size}px; background-color: rgba(0, 255, 170, 0.25);",
+                        })
+                        .collect();
+
+                    // Sort so highest-priority items are last (rendered on top)
+                    if sort_by_similarity {
+                        indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+                    } else {
+                        indexed.sort_by(|a, b| all_startups[a.0].team_size.cmp(&all_startups[b.0].team_size));
+                    }
+
+                    rsx! {
+                        for (i, sim) in indexed {
+                            {
+                                let startup = &all_startups[i];
+                                let opacity = 0.06_f32.max(sim.powf(2.0));
+                                if startup.team_size >= min_team_size() {
+                                    let logo_size = (30.0 + ((startup.team_size + 1) as f32).log10() * 5.0).min(50.0);
+                                    let font_size = (12.0 + ((startup.team_size + 1) as f32).log10() * 2.0).min(20.0);
+                                    rsx! {
+                                        div {
+                                            key: "{i}",
+                                            class: "absolute -translate-x-1/2 -translate-y-1/2",
+                                            style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; opacity: {opacity};",
+                                            img {
+                                                src: "{startup.logo_url}",
+                                                loading: "lazy",
+                                                class: "block mx-auto mb-0.5 rounded-md",
+                                                style: "width: {logo_size}px; height: auto;",
+                                                alt: "{startup.name}"
+                                            }
+                                            p {
+                                                class: "m-0 whitespace-nowrap",
+                                                style: "font-size: {font_size}px;",
+                                                a {
+                                                    href: "{startup.link}",
+                                                    target: "_blank",
+                                                    class: "font-medium no-underline transition-colors",
+                                                    style: "color: #e0e4e2; font-family: 'JetBrains Mono', monospace;",
+                                                    "{startup.name}"
+                                                }
+                                                if opacity > 0.3 {
+                                                    span {
+                                                        class: "font-normal",
+                                                        style: "color: #9a9fa0;",
+                                                        " {startup.tagline}"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if startup.team_size >= 25 {
+                                    let dot_size = ((startup.team_size as f32).log10() * 2.0).max(2.0).min(8.0);
+                                    let dot_alpha = sim.powf(3.0) * 0.6;
+                                    rsx! {
+                                        div {
+                                            key: "{i}",
+                                            class: "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
+                                            style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; width: {dot_size}px; height: {dot_size}px; background-color: rgba(0, 255, 170, {dot_alpha});",
+                                        }
+                                    }
+                                } else {
+                                    rsx! {}
                                 }
                             }
                         }
                     }
                 }
             }
+
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[component]
-fn SearchView(
+fn MainView(
     startups: Signal<Vec<StartupWithPos>>,
     similarities: Signal<Vec<f32>>,
     mut search_query: Signal<String>,
@@ -408,10 +432,21 @@ fn SearchView(
     mut sort_mode: Signal<SortMode>,
     mut min_team_size_filter: Signal<u32>,
     mut min_similarity_filter: Signal<f32>,
+    mut view_mode: Signal<ViewMode>,
+    zoom: Signal<f32>,
+    offset_x: Signal<f32>,
+    offset_y: Signal<f32>,
+    target_zoom: Signal<f32>,
+    target_offset_x: Signal<f32>,
+    target_offset_y: Signal<f32>,
+    is_dragging: Signal<bool>,
+    last_mouse_x: Signal<f32>,
+    last_mouse_y: Signal<f32>,
 ) -> Element {
     let search = committed_search();
     let has_search = !search.is_empty();
     let is_sim_sort = sort_mode() == SortMode::Similarity;
+    let is_list = view_mode() == ViewMode::List;
 
     // Find max team size for slider range
     let max_team_size = use_memo(move || {
@@ -462,14 +497,14 @@ fn SearchView(
                     class: "flex p-0.5",
                     style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
                     div {
-                        class: "px-3 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider",
-                        style: if !is_sim_sort { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else { "color: #a0a8a4;" },
+                        class: "px-3 py-1.5 cursor-pointer text-xs font-medium select-none uppercase tracking-wider",
+                        style: if !is_sim_sort { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else { "color: #a0a8a4; background: transparent;" },
                         onclick: move |_| sort_mode.set(SortMode::TeamSize),
                         "Team Size"
                     }
                     div {
-                        class: if has_search { "px-3 py-1.5 cursor-pointer text-xs font-medium transition-all select-none uppercase tracking-wider" } else { "px-3 py-1.5 cursor-not-allowed text-xs font-medium transition-all select-none uppercase tracking-wider" },
-                        style: if is_sim_sort && has_search { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else if has_search { "color: #a0a8a4;" } else { "color: #505850;" },
+                        class: if has_search { "px-3 py-1.5 cursor-pointer text-xs font-medium select-none uppercase tracking-wider" } else { "px-3 py-1.5 cursor-not-allowed text-xs font-medium select-none uppercase tracking-wider" },
+                        style: if is_sim_sort && has_search { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else if has_search { "color: #a0a8a4; background: transparent;" } else { "color: #505850; background: transparent;" },
                         onclick: move |_| {
                             if has_search {
                                 sort_mode.set(SortMode::Similarity);
@@ -541,10 +576,46 @@ fn SearchView(
                         }
                     }
                 }
+
+                // View toggle
+                div {
+                    class: "flex p-0.5 ml-auto",
+                    style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
+                    div {
+                        class: "px-3 py-1.5 cursor-pointer text-xs font-medium select-none uppercase tracking-wider",
+                        style: if is_list { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else { "color: #a0a8a4; background: transparent;" },
+                        onclick: move |_| view_mode.set(ViewMode::List),
+                        "List"
+                    }
+                    div {
+                        class: "px-3 py-1.5 cursor-pointer text-xs font-medium select-none uppercase tracking-wider",
+                        style: if !is_list { "color: #00ffaa; background: rgba(255, 255, 255, 0.06); border-radius: 3px;" } else { "color: #a0a8a4; background: transparent;" },
+                        onclick: move |_| view_mode.set(ViewMode::Map),
+                        "Map"
+                    }
+                }
             }
 
-            // Results
-            if !has_search && is_sim_sort {
+            // Content area
+            if !is_list {
+                MapView {
+                    startups,
+                    similarities,
+                    sort_by_similarity: sort_mode() == SortMode::Similarity,
+                    has_search,
+                    min_team_size_filter: min_team_size_filter(),
+                    min_similarity_filter: min_similarity_filter(),
+                    zoom,
+                    offset_x,
+                    offset_y,
+                    target_zoom,
+                    target_offset_x,
+                    target_offset_y,
+                    is_dragging,
+                    last_mouse_x,
+                    last_mouse_y,
+                }
+            } else if !has_search && is_sim_sort {
                 div {
                     class: "flex-1 flex flex-col items-center justify-center gap-3",
                     p {
@@ -628,13 +699,13 @@ fn SearchView(
                                 }
                                 span {
                                     class: "text-xs uppercase tracking-wider w-16 text-right shrink-0",
-                                    style: "color: #606860;",
+                                    style: if !is_sim_sort { "color: #00ffaa;" } else { "color: #606860;" },
                                     "Team"
                                 }
                                 if has_search {
                                     span {
                                         class: "text-xs uppercase tracking-wider w-16 text-right shrink-0",
-                                        style: "color: #606860;",
+                                        style: if is_sim_sort { "color: #00ffaa;" } else { "color: #606860;" },
                                         "Match"
                                     }
                                 }
@@ -648,6 +719,7 @@ fn SearchView(
                                         startup: all_startups[idx].clone(),
                                         similarity: sim,
                                         show_similarity: has_search,
+                                        sort_mode: sort_mode(),
                                         rank: rank + 1,
                                     }
                                 }
@@ -660,9 +732,11 @@ fn SearchView(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[component]
-fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, rank: usize) -> Element {
+fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, sort_mode: SortMode, rank: usize) -> Element {
     let match_pct = (similarity * 100.0).round() as u32;
+    let is_team_sort = sort_mode == SortMode::TeamSize;
 
     rsx! {
         div {
@@ -703,7 +777,7 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, r
             // Team size
             span {
                 class: "text-xs w-16 text-right shrink-0",
-                style: "color: #a0a8a4;",
+                style: if is_team_sort { "color: #00ffaa;" } else { "color: #a0a8a4;" },
                 "{startup.team_size}"
             }
 
@@ -711,7 +785,7 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, r
             if show_similarity {
                 span {
                     class: "text-xs font-medium w-16 text-right shrink-0",
-                    style: "color: #00ffaa;",
+                    style: if !is_team_sort { "color: #00ffaa;" } else { "color: #a0a8a4;" },
                     "{match_pct}%"
                 }
             }
