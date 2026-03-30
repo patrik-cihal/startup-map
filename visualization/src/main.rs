@@ -70,7 +70,6 @@ fn app() -> Element {
     let startups =
         use_signal(|| serde_json::from_str::<Vec<StartupWithPos>>(STARTUPS_JSON).unwrap());
 
-    // Search signals (desktop only)
     #[cfg(not(target_arch = "wasm32"))]
     let search_query = use_signal(|| String::new());
     #[cfg(not(target_arch = "wasm32"))]
@@ -91,6 +90,8 @@ fn app() -> Element {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let startups_len = startups.len();
+        // Cache the model across searches — loading it is expensive
+        let mut model: Signal<Option<TextEmbedding>> = use_signal(|| None);
         use_effect(move || {
             let search = committed_search();
             if search.is_empty() {
@@ -98,19 +99,17 @@ fn app() -> Element {
                 is_searching.set(false);
             } else {
                 is_searching.set(true);
-                let mut model = TextEmbedding::try_new(Default::default()).unwrap();
-                let search_vec = model.embed(vec![search], None).unwrap()[0].clone();
+                let mut model_ref = model.write();
+                if model_ref.is_none() {
+                    *model_ref = Some(TextEmbedding::try_new(Default::default()).unwrap());
+                }
+                let search_vec = model_ref.as_mut().unwrap().embed(vec![search], None).unwrap()[0].clone();
+                let norm_search = search_vec.iter().map(|x| x * x).sum::<f32>().sqrt();
                 let new_similarities = startups
                     .iter()
                     .map(|s| {
-                        let dot: f32 = s
-                            .embedding
-                            .iter()
-                            .zip(&search_vec)
-                            .map(|(a, b)| a * b)
-                            .sum();
+                        let dot: f32 = s.embedding.iter().zip(&search_vec).map(|(a, b)| a * b).sum();
                         let norm_s = s.embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
-                        let norm_search = search_vec.iter().map(|x| x * x).sum::<f32>().sqrt();
                         dot / (norm_s * norm_search)
                     })
                     .collect::<Vec<f32>>();
@@ -129,7 +128,6 @@ fn app() -> Element {
         });
     }
 
-    // Zoom/pan state
     let mut zoom = use_signal(|| 1.0f32);
     let mut offset_x = use_signal(|| 0.0f32);
     let mut offset_y = use_signal(|| 0.0f32);
@@ -140,7 +138,6 @@ fn app() -> Element {
     let last_mouse_x = use_signal(|| 0.0f32);
     let last_mouse_y = use_signal(|| 0.0f32);
 
-    // Smooth animation loop
     use_future(move || async move {
         loop {
             let cz = *zoom.read();
@@ -214,7 +211,6 @@ fn app() -> Element {
             class: "w-screen h-screen m-0 p-0 font-mono flex flex-col overflow-hidden",
             style: "background: #080c08;",
 
-            // Top bar
             div {
                 class: "flex items-center justify-between px-6 py-2.5 z-50 shrink-0",
                 style: "background: rgba(8, 14, 8, 0.95); border-bottom: 1px solid rgba(0, 255, 170, 0.15);",
@@ -225,7 +221,6 @@ fn app() -> Element {
                     "// startup_map"
                 }
 
-                // Status indicator
                 div {
                     class: "flex items-center gap-2",
                     div {
@@ -314,11 +309,12 @@ fn MapView(
                 let oox = *target_offset_x.read();
                 let ooy = *target_offset_y.read();
 
-                let zoom_factor = match evt.data.delta() {
-                    WheelDelta::Pixels(v) => if (v.y as f32) < 0.0 { 1.1 } else { 0.9 },
-                    WheelDelta::Lines(v) => if (v.y as f32) < 0.0 { 1.1 } else { 0.9 },
-                    WheelDelta::Pages(v) => if (v.y as f32) < 0.0 { 1.1 } else { 0.9 },
+                let delta_y = match evt.data.delta() {
+                    WheelDelta::Pixels(v) => v.y as f32,
+                    WheelDelta::Lines(v) => v.y as f32,
+                    WheelDelta::Pages(v) => v.y as f32,
                 };
+                let zoom_factor = if delta_y < 0.0 { 1.1 } else { 0.9 };
 
                 let nz = (oz * zoom_factor).clamp(0.1, 60.0);
                 let wx = (mx - oox) / oz;
@@ -335,8 +331,9 @@ fn MapView(
                 {
                     let sims = similarities();
                     let all_startups = startups();
+                    let z = zoom();
+                    let mts = min_team_size();
 
-                    // Build filtered + sorted index list
                     let mut indexed: Vec<(usize, f32)> = all_startups.iter().enumerate()
                         .map(|(i, _)| (i, sims.get(i).copied().unwrap_or(1.0)))
                         .filter(|(i, sim)| {
@@ -351,7 +348,7 @@ fn MapView(
                         })
                         .collect();
 
-                    // Sort so highest-priority items are last (rendered on top)
+                    // Highest-priority items last (rendered on top)
                     if sort_by_similarity {
                         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
                     } else {
@@ -363,14 +360,14 @@ fn MapView(
                             {
                                 let startup = &all_startups[i];
                                 let opacity = 0.06_f32.max(sim.powf(2.0));
-                                if startup.team_size >= min_team_size() {
+                                if startup.team_size >= mts {
                                     let logo_size = (30.0 + ((startup.team_size + 1) as f32).log10() * 5.0).min(50.0);
                                     let font_size = (12.0 + ((startup.team_size + 1) as f32).log10() * 2.0).min(20.0);
                                     rsx! {
                                         div {
                                             key: "{i}",
                                             class: "absolute -translate-x-1/2 -translate-y-1/2",
-                                            style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; opacity: {opacity};",
+                                            style: "left: {startup.pos_x * 100.0 * z}%; top: {startup.pos_y * 100.0 * z}%; opacity: {opacity};",
                                             img {
                                                 src: "{startup.logo_url}",
                                                 loading: "lazy",
@@ -405,7 +402,7 @@ fn MapView(
                                         div {
                                             key: "{i}",
                                             class: "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-                                            style: "left: {startup.pos_x * 100.0 * zoom()}%; top: {startup.pos_y * 100.0 * zoom()}%; width: {dot_size}px; height: {dot_size}px; background-color: rgba(0, 255, 170, {dot_alpha});",
+                                            style: "left: {startup.pos_x * 100.0 * z}%; top: {startup.pos_y * 100.0 * z}%; width: {dot_size}px; height: {dot_size}px; background-color: rgba(0, 255, 170, {dot_alpha});",
                                         }
                                     }
                                 } else {
@@ -448,7 +445,6 @@ fn MainView(
     let is_sim_sort = sort_mode() == SortMode::Similarity;
     let is_list = view_mode() == ViewMode::List;
 
-    // Find max team size for slider range
     let max_team_size = use_memo(move || {
         startups().iter().map(|s| s.team_size).max().unwrap_or(1000)
     });
@@ -457,12 +453,10 @@ fn MainView(
         div {
             class: "flex-1 flex flex-col overflow-hidden",
 
-            // Search toolbar
             div {
                 class: "flex items-center gap-4 px-6 py-3 shrink-0 flex-wrap",
                 style: "border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);",
 
-                // Search input
                 div {
                     class: "relative w-80",
                     span {
@@ -492,7 +486,6 @@ fn MainView(
                     }
                 }
 
-                // Sort toggle
                 div {
                     class: "flex p-0.5",
                     style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
@@ -514,14 +507,12 @@ fn MainView(
                     }
                 }
 
-                // Filter slider
                 div {
                     class: "flex items-center gap-2",
                     if is_sim_sort {
                         {
                             let max_ts = max_team_size() as f64;
                             let cur_ts = min_team_size_filter() as f64;
-                            // Reverse: slider_pos = 1000 * (team_size / max)^(1/3)
                             let slider_val = if max_ts > 0.0 { (1000.0 * (cur_ts / max_ts).powf(1.0 / 3.0)).round() as u32 } else { 0 };
                             rsx! {
                                 span {
@@ -577,7 +568,6 @@ fn MainView(
                     }
                 }
 
-                // View toggle
                 div {
                     class: "flex p-0.5 ml-auto",
                     style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
@@ -596,7 +586,6 @@ fn MainView(
                 }
             }
 
-            // Content area
             if !is_list {
                 MapView {
                     startups,
@@ -658,8 +647,8 @@ fn MainView(
                         }
                     }
 
+                    let total_count = indexed.len();
                     let results: Vec<(usize, f32)> = indexed.into_iter().take(50).collect();
-                    let result_count = results.len();
 
                     rsx! {
                         div {
@@ -668,13 +657,12 @@ fn MainView(
                             p {
                                 class: "text-xs mb-4 uppercase tracking-wider",
                                 style: "color: #a0a8a4;",
-                                "{result_count} results"
+                                "{total_count} results"
                                 if has_search {
                                     " // query: \"{search}\""
                                 }
                             }
 
-                            // Column headers
                             div {
                                 class: "flex items-center gap-3 px-3 pb-2 mb-1",
                                 style: "border-bottom: 1px solid rgba(255, 255, 255, 0.08);",
@@ -711,7 +699,6 @@ fn MainView(
                                 }
                             }
 
-                            // Results list
                             div {
                                 class: "flex flex-col",
                                 for (rank, (idx, sim)) in results.into_iter().enumerate() {
@@ -743,22 +730,17 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, s
             class: "flex items-center gap-3 px-3 py-2",
             style: "border-bottom: 1px solid rgba(255, 255, 255, 0.04);",
 
-            // Rank
             span {
                 class: "text-xs w-8 text-right shrink-0",
                 style: "color: #505850;",
                 "{rank}"
             }
-
-            // Logo
             img {
                 src: "{startup.logo_url}",
                 class: "w-7 h-7 object-cover shrink-0",
                 style: "border-radius: 3px;",
                 alt: "{startup.name}"
             }
-
-            // Name (clickable link)
             a {
                 href: "{startup.link}",
                 target: "_blank",
@@ -766,22 +748,16 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, s
                 style: "color: #e0e4e2;",
                 "{startup.name}"
             }
-
-            // Tagline
             span {
                 class: "text-xs truncate flex-1 hidden md:block",
                 style: "color: #707870;",
                 "{startup.tagline}"
             }
-
-            // Team size
             span {
                 class: "text-xs w-16 text-right shrink-0",
                 style: if is_team_sort { "color: #00ffaa;" } else { "color: #a0a8a4;" },
                 "{startup.team_size}"
             }
-
-            // Similarity
             if show_similarity {
                 span {
                     class: "text-xs font-medium w-16 text-right shrink-0",
