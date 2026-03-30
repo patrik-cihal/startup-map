@@ -91,28 +91,39 @@ except FileNotFoundError:
     print(f"Error: {input_csv} not found. Ensure the file exists.")
     exit(1)
 
-# Set total links for progress tracking
-total_links = len(companies)
-print(f"Starting to scrape {total_links} company links...")
+# Load existing details to skip already-scraped companies
+existing_results = []
+existing_links = set()
+if os.path.exists(output_csv):
+    with open(output_csv, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        existing_results = list(reader)
+        existing_links = {row['company_link'] for row in existing_results}
 
-# Scrape in parallel
-results = []
-with ThreadPoolExecutor(max_workers=10) as executor:
-    futures = [executor.submit(scrape_company, company['batch'], company['company_link']) for company in companies]
-    for future in as_completed(futures):
-        result = future.result()
-        if result:
-            results.append(result)
+new_companies = [c for c in companies if c['company_link'] not in existing_links]
+total_links = len(new_companies)
+print(f"Found {len(existing_results)} existing details, {total_links} new companies to scrape.")
 
-# Save to output CSV
-if results:
+# Scrape new companies in parallel
+new_results = []
+if new_companies:
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(scrape_company, company['batch'], company['company_link']) for company in new_companies]
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                new_results.append(result)
+
+# Merge existing + new and save
+all_results = existing_results + new_results
+if all_results:
     fieldnames = ['batch', 'company_link', 'name', 'tagline', 'long_description', 'founders', 'logo_url', 'location', 'founded', 'team_size']
     try:
         with open(output_csv, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(results)
-        print(f"Saved {len(results)} company details to {output_csv}")
+            writer.writerows(all_results)
+        print(f"Saved {len(all_results)} total ({len(new_results)} new) company details to {output_csv}")
     except Exception as e:
         print(f"Error saving to {output_csv}: {e}")
 else:

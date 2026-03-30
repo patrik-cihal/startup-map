@@ -5336,3 +5336,412 @@ Online calendar for individuals and teams with mobile access and easy sharing
 Automated malware detection and ad moderation for online media
 Desktop search for knowledge workers
 Social mapping and local discovery for mobile users using location data
+On-demand electronics manufacturing for hardware teams using factory-scale robotics
+Customizable spaced-repetition flashcards for language learners
+Screen sharing for teams and developers via browser streaming
+HIPAA-compliant clinical messaging with real-time insight alerts for hospitals
+Touch-optimized marketing platform for brands and retailers
+AI-powered underwriting and diligence for private markets investors
+Automated quoting and order entry for manufacturers and distributors using AI
+Automated consumer loan servicing and collections via omnichannel voice AI
+Multi-currency USD/BRL accounts for Brazilian individuals and businesses via Pix and crypto
+Automated call handling and lead qualification for service businesses using AI
+Residential brokerage for NYC landlords with low commissions using AI
+Cross-border neobank for the Middle East and diaspora
+AI conversational forms for businesses to boost response rates
+Critical metals production for U.S. supply chains using carbon-neutral carbochlorination
+Measure and monitor bulk materials inventory using LiDAR and computer vision
+Automated business insights for companies using AI
+AI growth and optimization platform for car washes
+Build and deploy enterprise browser agents via single-API platform
+Automated GD&T analysis for engineering and manufacturing teams
+Procurement platform for dental offices with aggregated suppliers and price comparisons
+Load planning optimization for commercial truck fleets using unified fleet data
+AI customer support agents for e-commerce brands
+Animated explainer video creation for teams using AI
+Video research platform for user researchers
+AI meeting notepad for teams, open-source local-first
+Build and deploy MCP servers and ChatGPT apps for AI developers
+Personalized digital greeting cards for loved ones with AI-generated music
+Indexing human dialogue for digital products
+Hardware testing and certification for manufacturers
+Red-Team Debugging Agents for Reinforcement Learning Developers
+Molecular design and testing planning using AI for pharma and biotech
+Context-aware workflow orchestration for non-technical teams using human-AI collaboration
+High-fidelity visual simulation for world-model research using neural systems
+Auditable AI evidence synthesis for pharma and device regulatory and payer submissions
+Tiny frontier AI models for edge devices
+Cattle health monitoring for farmers using implantable microchips and AI
+Automated case qualification for class action law firms using AI
+Open-Source Coding Agent for Developers Using Intent-Driven AI
+AI-native underwriting and actuarial workflows for insurers
+Production-grade sandboxed infrastructure with verification workflows for autonomous coding agents
+Instant video analysis for enterprises using vision-language models
+Video workflow and asset management software for production professionals
+Speech Datasets For AI Labs From Vetted, Diverse Contributors
+Autonomous AI agents optimizing GPU kernels for chipmakers and cloud providers
+Code, test, and deploy native Swift apps for iOS developers
+AI-powered 24/7 citizen support for local governments
+End-to-end testing platform for software teams using plain-English tests
+Topology optimization for hardware engineering using physics-based foundation models
+AI agents for enterprise delivery teams capturing conversations and structuring scope
+Git-based code hosting and collaboration for developers
+Automated reliability optimization for AI agents using calibrated LLM evaluations
+AI investment advice for retail investors
+Optimize product mentions in AI answers for product teams
+Same-day wholesale fresh produce delivery for retailers using micro-fulfillment
+High-fidelity sandbox environments for enterprise AI agent testing
+Automated underwriting and submission processing for insurers using AI
+Build and host multi-model tool-calling agents for developers
+AI forecasting agents for global macro events
+Detecting emerging market narratives for institutional investors using AI
+Influencer outreach, negotiation, and campaign automation for brands using AI
+Infrastructure for reliable AI agent deployment in production
+Collecting task-specific training data for robotics labs from skilled trades
+Supplying critical components for hard-tech companies through low-volume, high-mix manufacturing
+Autonomous AI Employees for Company Operations
+Automated data cleaning for hedge funds via API and AI-assisted review
+Automated specialist referral coordination for primary care using AI
+Autonomous task management for knowledge workers using AI
+Real-time AI compliance checking for hospitals and clinics
+Reinforcement learning environments for training frontier ML models
+AI-powered K-12 math tutoring with interactive voice and dialectic lessons
+Short-form video creation platform for creators using AI
+Role-specific AI assistants for businesses
+Structured factory workflow data for robotics training via first-person video and SOPs
+Opinionated rapid web app builder for aspiring startup founders
+Managed influencer campaigns for brands with measurable attribution
+Reinforcement learning environments for coding and computer workflows
+AI writing assistant for teams using personalized voice modeling
+AI assistants for insurance agencies handling submissions, COIs, SOV mapping
+Automated mortgage platform for homebuyers reducing rates and fees
+Surface repetitive high-cost tasks via desktop app and automate them for organizations
+No description provided — please supply company details
+Remote clear aligner treatment for adults using teledentistry
+In-browser AI copilot for knowledge workers
+Integration platform for AI agents with secure native connectors
+Custom emoji creation and discovery for messaging platforms
+AI agent-powered data discovery and lineage for enterprises
+AI-driven client intake for law firms
+Monitoring enterprise communications for fraud, theft, and compliance using LLMs
+AI call center agents for enterprises with CRM integration
+Fine-tuning open-source models using reinforcement learning for companies
+Component search for electronics engineers using natural language
+Regulated exchange for compute derivatives
+AI-generated digital-human photo and video shoots for fashion brands
+Automated Word document editing with contextual AI
+Automated customs auditing and classification for importers using AI
+Voice AI platform for home service providers
+SOP automation platform for government and professional services
+AI voice agents for hotel operations
+Assess Engineering Candidates Through AI-Assisted Coding Process Analysis
+AI-driven patient outreach and scheduling for healthcare organizations
+End-to-end iOS app development platform powered by AI
+Website customization for Chrome users via extensions
+Vacation search platform for budget travelers
+Automated root-cause analysis for on-call engineering teams using telemetry correlation
+Browser Automation IDE for Developers With AI-Assisted Playwright Scripting
+Orchestrate AI coding agents for software teams
+AI workflow platform for supply chain operations with task-specific bots
+AI care coordination for hospice, home health, skilled nursing
+Autonomous web browsing agent for developers and businesses using AI
+Cloud desktop OS for teams with integrated AI agents
+LLM interface protocol for camera and sensor systems
+Real-time organizational mapping for founders and operators at growing companies
+Portfolio clarity platform for limited partners in private markets
+Live streaming tools for IRL streamers
+Web data extraction API for AI and data teams using agent automation
+Clinical skills training for healthcare and behavioral health professionals using AI avatars
+Open-source automated activity logging for founders and engineers
+Productivity Coaching for Knowledge Workers via AI Call Assistant
+Organic growth strategies for startups
+Stock research for traders and investors using a CLI
+Browser-based AI coding for Minecraft mods, servers, datapacks
+Automated patient intake and revenue cycle management for specialty clinics
+Post-order operations automation for e-commerce brands and 3PLs
+Deploy autonomous AI agents for healthcare, retail, and logistics with legacy integration
+AI-Powered Quantitative Research Platform for Traders Using Petabyte-Scale Market Data
+Energy-efficient, reconfigurable XPUs for AI data centers
+Autonomous vulnerability detection and patching for mission-critical codebases using AI
+Automated legal diligence for M&A teams using AI
+AI-powered systematic reviews for researchers and pharma
+Curated biomedical datasets and evaluations for oncology AI
+Model interpretability and alignment datasets using RL for ML researchers
+Create shareable stories from iMessage conversations using AI
+Automated client intake for home care agencies using HIPAA-compliant AI
+Direct insurance underwriting for startups using AI
+AI video generation and editing platform for creators
+Global USD banking, transfers, and investing for remote workers
+AI-powered accountability and execution system for startup founders
+Automated bookkeeping for European SMEs and accountants using AI
+Background task orchestration for developers using async workflows
+Exam prep platforms for underserved international exams using AI
+Personalized injury rehabilitation for athletes using AI
+Personalized life coaching for individuals using AI and personal data
+Personalized marketing at scale using always-on AI agents
+Post-training datasets teaching document AI models real-world tasks
+Prebuilt AI agents for non-technical teams
+Reinforcement learning environments for long-horizon browser and desktop agents
+Sales growth insights for consumer products using AI
+Stablecoin payouts for marketplaces, agencies, and startups
+Real-time avatar video calls for apps using single-photo AI models
+In-app action automation for apps using open-source copilot
+Observability, evaluation, and adaptive gateway for production AI agents
+Risk and compliance solutions for financial services using AI
+AI-powered clinical paperwork automation for healthcare providers
+Automated leasing and maintenance for property managers using AI
+Customer intelligence platform for post-sales teams with AI agents
+AI tooling for developers and product teams
+Adaptive fitness coaching for people seeking structured training using wearable data
+Precomputed contextual codebase documentation for engineering teams
+Automated footage organization for video editors using AI
+Precision outbound outreach for B2B sales teams using AI
+Optimize energy procurement for large electricity consumers using AI
+AI-generated social media content for creators and brands
+Generative AI video production platform for professional filmmakers
+Unified data intelligence platform for medical-legal cases using AI
+Custom labeled video datasets for AI labs via agent-driven search
+Continuous LLM fine-tuning for business workflows capturing proprietary knowledge
+Multi-chain deposit and payment API and SDK for crypto apps
+AI-driven CAD software for mechanical engineers
+CRM for startups integrating communications and marketing using AI
+Tankless breathing systems for divers and extreme environments using water-based oxygen extraction
+Robot manipulation models and hands with real-world data for manufacturing and logistics
+Autonomous cattle herding for ranches using AI drones
+Autonomous AI analysis for school libraries to double reading rates
+Automated administrative software for aircraft mechanics
+Reasoning and verification infrastructure for AI systems using human-in-the-loop
+Automated regulatory submission drafting using AI for life sciences teams
+Automated three-way invoice matching across ERPs for procurement using AI agents
+AI personalization infrastructure for consumer and self-serve apps improving retention and conversion
+Borderless digital bank accounts for individuals and businesses
+Place intelligence API for AI agents with live web context
+Automated complex scheduling for hiring teams using AI agents
+Agent-driven end-to-end staffing and operations management for care organizations
+AI infrastructure optimization for ML workloads via automated parallel experiments
+Automated mortgage underwriting for lenders using AI agents
+Automated marketing compliance reviews for enterprises using AI
+Automated QA for engineering teams using code-aware AI
+Workplace messaging and collaboration using AI agents
+Performance-based payroll API for companies paying contractors and AI agents
+Payments API and PCI-compliant processing for voice AI agents
+Reliability monitoring and analytics for AI agents
+Context compression middleware for LLM applications
+Disrupt social engineering attacks for enterprises using undercover AI agents
+Legislative monitoring and actionable policy insights for businesses using AI agents
+Project management platform for residential contractors using AI
+Conversational AI platform for controlling web and mobile apps
+AI-powered grid planning software for utilities
+Dynamic pricing for time-slot businesses using demand forecasting
+AI-powered commercial contract services for growth-stage companies
+Monthly bookkeeping and reconciliation for SMBs using AI
+Automated on-call debugging for regulated, data-heavy industries with secure on-prem AI
+Automatic strength tracking for longevity-focused users using heart-rate and motion data
+Optimize revenue for equipment dealers using AI agents
+Design editor generating production-ready code for AI agent builders
+Robotic automation for e-commerce warehouses using learned dexterous manipulation
+Language learning for Gen Z via level-matched short videos
+AI-powered in-app workflow automation for enterprise Office and Google apps
+Low-latency trade execution for crypto, prediction, and tokenized assets
+Drug discovery for autoimmune diseases using AI and parasite-derived proteins
+Quantify ecosystem-driven revenue for B2B SaaS using AI
+Robotic automation for industrial operations using demonstration learning
+On-site solar and second-life battery power for data centers
+Simulated training environments for autonomous agents
+Automated operations workflows for ops teams using Slack and AI
+Voice Transcription and Actionable Notes for Mobile Professionals Using AI
+Autonomous CI/CD management for engineering teams using AI
+Accelerated global file transfer for enterprises and mission-critical systems via network infrastructure
+Real-time SAR-to-optical translation for Earth observation using diffusion models
+AI-driven network operating system for mega-scale satellite constellations
+Real-time AI assistance for revenue teams on sales calls
+Monitor and manage enterprise AI usage and governance
+Multimodal data collection and labeling for embodied robotics
+Multilingual AI voice operations for high-volume organizations
+Regulated exchange for investors trading attention indices from search, social, and streaming
+Marketing for brands to reach AI agents using AI-driven content
+Back-office automation for trades businesses using AI
+Automated inventory and contents processing for insurers, adjusters, and restoration firms
+Agent-based development environment for engineering teams using parallel AI coding agents
+Raw radar sensors and high-fidelity simulation for autonomous vehicles
+Aggregated prediction market trading with API for systematic traders
+Hardware procurement marketplace for hardware teams using AI agents
+Autonomous software development using AI agents for engineering teams
+Automating administrative tasks for automotive technicians using AI to increase service throughput
+Research lab for non-verifiable or speculative research
+Revenue growth for home services businesses using AI agents
+Automated deal execution platform for investment banks
+AI agents for small- and mid-sized US banks' back-office compliance
+AIOps platform automating infrastructure for ML teams
+Appointment scheduling and revenue optimization for dental practices using AI
+Convert compute into chip design capacity using AI for semiconductor teams
+Autonomous modular strike drones for defense with agentic control reducing lifecycle costs
+AI co-scientist platform for computational research
+Automated enterprise workflows via natural-language AI
+AI-directed video editing for marketing teams and creators
+Continuous primary care monitoring for patients using AI and wearables
+Research automation agents for life sciences using citation-backed retrieval
+Alternate-history grand strategy platform for gamers using AI
+Automated reconciliation for high-volume payments companies using AI
+Continuous AI-driven penetration testing for applications and infrastructure
+Formal verification for quantum computing and finance using Lean
+Automated performance marketing for advertisers using reinforcement learning and LLMs
+Orchestration platform for filesystem-based coding agents (CLI-first)
+Automating B2B software deployment for customer-facing teams using AI agents
+Automated patent litigation tools for IP teams using agentic AI
+Commercial loan servicing using AI agents for banks and fintechs
+Automated Incident Response for SRE Teams Using Adaptive AI Agents
+Real-time computer vision infrastructure for developers
+Real-time medical interpretation for healthcare providers using voice AI
+Semantic-preserving context compression API for LLM agents and RAG
+Surgical planning AI for orthopedic surgeons
+Data-efficient AI for scientific research and materials discovery
+Banking and payments infrastructure for autonomous agents and businesses
+High-grade uranium exploration using AI in North America
+Agent payment infrastructure for APIs, pay-per-use
+Create pull requests for non-technical team members via GitHub
+Automated recruiting for startups using AI
+Real-time call coaching for sales reps using AI
+Automated document processing for enterprises using AI
+ERP-integrated AI quoting assistant for industrial distributors
+Pre-execution action validation for enterprise AI agents via API
+AI-powered legal services for startups with same-day expert review
+Automated complex desktop and browser processes for enterprises using screen-based AI
+Detecting and tracking small drones for airports and defense using high-frequency radar
+Build and publish web games for non-developers using AI
+Automated quality inspection for fish hatcheries using AI vision
+Deployable orbital solar arrays for satellite power
+Autonomous research and optimization for engineering teams using AI
+Sourcing and licensing rights-cleared multimodal data for frontier AI teams
+Automated multi-modal testing for AI agents
+Scheduling platform for health systems using AI
+Robotic depot automation for electric and autonomous vehicle fleets
+Hiring engineers for tech companies using AI on GitHub
+Fraud detection, investigation, and mitigation for companies using AI
+Transform software into agent-first APIs for developers
+Automated development plan review platform for city planners using AI
+Real-time claims verification for insurers using AI and satellite imagery
+Higher-yield cash management for companies using short-duration bonds
+Manufacturing custom aerospace-grade battery packs for drones, submarines, and satellites
+React UI and infrastructure components for AI agent developers
+Automated non-design workflows for architecture firms using AI
+Practice management platform for medspas using AI agents
+Fast, low-cost multimodal inference for AI teams with a proprietary engine
+Spec-driven planning framework for developers using coding agents
+Direct in-app billing SDK for mobile app developers
+AI-generated shareable workspaces for teams
+Cost-efficient inference for trillion-parameter AI models using photonic hardware
+Drug discovery for pharma using AI agents and foundation models
+Automating repetitive tasks for freight brokers and forwarders with AI
+Model alignment for enterprises using proprietary data and workflows
+Interpretability and Reasoning SDK for Foundation Model Developers
+Generate missing patient biology for pharmaceutical trials using multimodal foundation models
+Administrative workflow automation for primary care using AI
+AI-powered self-repairing workflow automation for startups
+End-to-end hardware compliance automation for manufacturers using AI
+Real-time escalation detection for security teams using video AI
+Automated workflow creation for teams using AI
+Immigration petition preparation using AI for visa applicants
+Real-Time Monitoring and Debugging for Production AI Agents
+Protein characterization for drug developers using deep-memory AI
+Incident detection for businesses using AI upgrades to existing security cameras
+Automated 2D manufacturing drawings for mechanical engineers using AI
+Short-form video infrastructure with SDKs and recommender systems for consumer apps
+Automated medical record review using AI for workers' compensation
+Real-world human motion datasets for humanoid robot training
+AI-native trading system for commodities traders
+Self-healing production software for engineering teams using monitoring integrations
+Deploy and manage on-device AI for enterprises with SDK and control plane
+Autonomous AI agents for hotels using computer-use agent technology
+Automated product optimization for digital products using behavioral AI
+Automated administrative workflows for biologic infusion clinics
+Secure cloud-hosted OpenClaw instances for Slack and messaging apps
+Automated credit review for lenders in emerging markets using document AI
+Autonomous code and PR generation for engineering teams using AI agents
+Realistic interactive simulation environments for robotics training and evaluation
+Fast identity verification platform for businesses using face scans
+Licensing automation for regulated financial services using AI
+Automated commercial insurance brokerage using AI agents
+Patient-derived single-cell drug-response datasets for pharma and AI
+Manufacturing US-made robotic components and plug-and-play primitives for robotics manufacturers
+Insurance risk quantification for autonomous systems using probabilistic simulation
+Actionable patient insights for clinics from harmonized data
+AGI benchmarking for researchers, industry, and regulators
+AI agents automating accounting tasks for corporate teams
+Automated back-office operations for CPG brands using AI agents
+Cryptographically-backed mystery pack creation for trading card collectors
+Predictive human behavior models for engineering using LLMs and physics simulations
+Prior-authorization automation for private medical practices using AI
+Decision optimization for critical operations using formal solvers and LLMs
+Real-time CFD digital twins for data centers and industrial facilities
+AGI for scientific discovery using unified pattern recognition and reasoning
+Impersonation attack detection for websites and APIs using outside-in monitoring
+Full-service legal platform for startups using AI
+Robotic systems for microgravity research and manufacturing
+Accurate multimodal file search for enterprise AI agents
+Automated internal audits for pre-IPO and public companies using AI
+Autonomous drone inspections for power grid infrastructure
+Centralized Data Permissioning For Enterprises And AI Agents
+Automated data quality platform for enterprise data stacks
+Automated Excel financial modeling for private-market investors using AI
+AI-powered real estate data platform for private equity firms, developers, and brokers
+Voice AI assistant for wearable, on-the-go users
+Automated customer retention for customer success teams using AI
+Real-time buying signals for go-to-market teams via intent-filtered monitoring
+Lunar habitat construction using in-situ regolith and inflatable modules
+Medical billing services for healthcare providers using AI
+AI-powered outbound deal sourcing for private equity
+Proactive AI customer support for high-value users using LLMs
+Electrical estimating for contractors using AI
+Game builder for anyone using chat-based AI
+Autonomous one-way attack drones for defense forces
+Sandbox infrastructure for AI agents with environment forks and snapshots
+End-to-end technical documentation for developer tools using AI
+Recruitment platform for staffing agencies using autonomous AI agents
+Enable secure use of coding agents for engineering teams
+AI-powered order entry, quoting, and customer updates for manufacturers
+Stream GPU-accelerated apps for engineers via cloud-native browser OS
+Autonomous e-commerce management for online retailers using AI
+Manage and share AI models and agents for teams
+AI-driven operational consulting for enterprises
+Automated browser QA for web apps using AI
+AI-assisted sourcing for US consumer brands from Indonesian suppliers
+ML-ready data pipelines for healthcare and drug discovery AI
+AI data analyst for teams in Slack, integrating docs, databases, and codebases
+Managed self-healing desktop automation for enterprises via API-triggered Windows workflows
+Clinical trial data system enabled by AI for pharma and medtech companies
+Automated image analysis for life science researchers using AI
+AI manufacturability analysis and fast custom parts for mechanical engineers
+Mobile MRI cancer screening for underserved communities
+Lifelike video agents for customer support teams using interactive video models
+Agent benchmarking platform for AI developers
+Real-time operational knowledge platform for managers
+Deterministic animation infrastructure for education using text prompts
+Autonomous investment research and portfolio analysis using AI
+AI lead detection and automated outreach for small sales teams
+Headless Semantic Web Browser for LLM Agents
+AI Voice Agents for Enterprise PBX, SIP, and Contact Centers
+Validation infrastructure for AI agents and code using production-like service replicas
+Document filling for enterprise forms and templates using AI
+Data-driven career representation for startup builders
+Automated loan servicing for commercial lenders using AI
+Deterministic AI models for developer tasks using hybrid DNN/CNN-LLM architecture
+DRM and IP protection for AI models using obfuscated weights
+AI sales agents for insurers with compliant end-to-end sales
+Training data APIs for machine learning teams
+Robotic fulfillment for warehouses with continuous learning and remote human oversight
+Automated sourcing and sales for industrial machinery using AI
+Materials discovery for datacenter and fab semiconductors using AI agents
+Technical assessments for software engineering using AI coding agents
+Background coding agents for software developers using AI
+Derivatives infrastructure for prediction markets
+Code review platform for engineering teams using structured chapters
+Accelerating research in math, science, and engineering with AI
+Communication infrastructure for fully autonomous agents
+Automated quote-to-order workflow for manufacturers using AI
+Refurbishable reentry vehicles returning space-manufactured semiconductors, biotech, and pharma products
+Observability platform for fast-moving engineering teams using AI
+IDE for developers to run LLM agents locally
+Autonomous counter-drone defense for military forces using AI
+AI voice and chat agents for large B2C sales and customer support
+Primary care and longevity services for patients using clinical AI

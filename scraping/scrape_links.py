@@ -11,6 +11,9 @@ from urllib.parse import quote
 
 # List of batches as provided by the user
 batches = [
+    "Spring 2026",
+    "Winter 2026",
+    "Fall 2025",
     "Summer 2025",
     "Spring 2025",
     "Winter 2025",
@@ -75,14 +78,21 @@ except Exception as e:
     print("Ensure Chromium is installed and the binary path is correct.")
     exit(1)
 
-# Check if CSV exists; if not, create it with header
 header = ['batch', 'company_link']
-if not os.path.exists(csv_file):
+
+# Load existing links to skip duplicates
+existing_links = set()
+if os.path.exists(csv_file):
+    with open(csv_file, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            existing_links.add(row['company_link'])
+else:
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=header)
         writer.writeheader()
 
-# Total count
+print(f"Found {len(existing_links)} existing links, will skip duplicates.")
 total_companies = 0
 
 for batch in batches:
@@ -114,16 +124,17 @@ for batch in batches:
             print(f"No companies found for batch {batch}. Check URL or selectors.")
             continue
 
-        # List for this batch's links
         batch_links = []
         for card in company_cards:
             href = card.get('href')
             if href and href.startswith('/companies/'):
                 link = f"https://www.ycombinator.com{href}"
-                batch_links.append({
-                    'batch': batch,
-                    'company_link': link
-                })
+                if link not in existing_links:
+                    batch_links.append({
+                        'batch': batch,
+                        'company_link': link
+                    })
+                    existing_links.add(link)
 
         # Append to CSV
         with open(csv_file, 'a', newline='', encoding='utf-8') as f:

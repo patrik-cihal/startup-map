@@ -1,18 +1,20 @@
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::Instant;
 
 use async_openai::{
     Client,
-    config::{Config, OpenAIConfig},
+    config::OpenAIConfig,
     types::{
         ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
         CreateChatCompletionRequestArgs,
     },
 };
 use fastembed::TextEmbedding;
+use futures::stream::{self, StreamExt};
 use ndarray::Array2;
 use pacmap::{Configuration, fit_transform};
 use serde::{Deserialize, Serialize};
-use serde_json;
+use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Startup {
@@ -54,19 +56,17 @@ Examples:
 
 Respond with ONLY the normalized tagline, no explanation.";
 
+const CONCURRENCY: usize = 20;
+
 async fn map_tagline(
     startup: &Startup,
     client: &Client<OpenAIConfig>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let user_prompt = format!(
         "Company: {}\nCurrent tagline: {}\nDescription: {}\n\nNormalize this tagline:",
         startup.name,
         startup.tagline,
-        startup
-            .long_description
-            .chars()
-            .take(500)
-            .collect::<String>()
+        startup.long_description.chars().take(500).collect::<String>()
     );
 
     let request = CreateChatCompletionRequestArgs::default()
@@ -84,13 +84,21 @@ async fn map_tagline(
         .build()?;
 
     let response = client.chat().create(request).await?;
-
     Ok(response.choices[0].clone().message.content.unwrap())
+}
+
+fn format_duration(secs: f64) -> String {
+    if secs < 60.0 {
+        format!("{:.0}s", secs)
+    } else {
+        format!("{}m{:02.0}s", secs as u64 / 60, secs % 60.0)
+    }
 }
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().unwrap();
+    let total_start = Instant::now();
 
     let startups = csv::Reader::from_path("../scraping/yc_company_details.csv")
         .unwrap()
@@ -98,73 +106,118 @@ async fn main() {
         .map(|res| res.unwrap())
         .collect::<Vec<_>>();
 
-    println!("Normalizing taglines for {} startups...", startups.len());
+    let total = startups.len();
+    println!("[1/4] Loaded {total} startups");
 
-    // Normalize taglines using LLM or fallback
-    // Load existing cached taglines
-    let mut cached_taglines = std::fs::read_to_string("cached_taglines.txt")
+    // Load cached taglines
+    let cached_taglines = std::fs::read_to_string("cached_taglines.txt")
         .unwrap_or_default()
         .lines()
         .map(|line| line.to_string())
         .collect::<Vec<String>>();
 
-    let mut normalized_startups = Vec::new();
-    let mut new_taglines = Vec::new();
+    let cached_count = cached_taglines.len().min(total);
+    let new_count = total.saturating_sub(cached_count);
+    println!("[2/4] Normalizing taglines: {cached_count} cached, {new_count} new");
 
-    let client = Client::new();
+    // Use cached taglines for existing startups
+    let mut normalized_startups: Vec<Startup> = startups[..cached_count]
+        .iter()
+        .cloned()
+        .zip(cached_taglines[..cached_count].iter())
+        .map(|(mut s, tagline)| {
+            s.tagline = tagline.clone();
+            s
+        })
+        .collect();
 
-    for (i, startup) in startups.iter().enumerate() {
-        if i % 10 == 0 {
-            println!("Processed {}/{} startups", i, startups.len());
-        }
+    // Process new startups in parallel
+    if new_count > 0 {
+        let client = Client::new();
+        let new_startups = &startups[cached_count..];
+        let completed = Arc::new(Mutex::new(0usize));
+        let start = Instant::now();
 
-        let normalized_tagline = if i < cached_taglines.len() {
-            cached_taglines[i].clone()
-        } else {
-            let mut mx_retries = 10;
-            let tagline = loop {
-                if let Ok(tagline) = map_tagline(startup, &client).await {
-                    break tagline;
+        let results: Vec<(usize, Result<String, _>)> = stream::iter(new_startups.iter().enumerate())
+            .map(|(i, startup)| {
+                let client = &client;
+                let completed = completed.clone();
+                async move {
+                    let mut retries = 10;
+                    let result = loop {
+                        match map_tagline(startup, client).await {
+                            Ok(tagline) => break Ok(tagline),
+                            Err(e) => {
+                                retries -= 1;
+                                if retries == 0 {
+                                    break Err(e);
+                                }
+                                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                            }
+                        }
+                    };
+
+                    let mut done = completed.lock().await;
+                    *done += 1;
+                    let elapsed = start.elapsed().as_secs_f64();
+                    let rate = *done as f64 / elapsed;
+                    let remaining = (new_count - *done) as f64 / rate;
+                    match &result {
+                        Ok(tagline) => println!(
+                            "  [{}/{}] {} - \"{}\" (ETA: {})",
+                            *done, new_count, startup.name, tagline, format_duration(remaining)
+                        ),
+                        Err(e) => println!(
+                            "  [{}/{}] {} - FAILED: {}",
+                            *done, new_count, startup.name, e
+                        ),
+                    }
+
+                    (i, result)
                 }
-                mx_retries -= 1;
-                if mx_retries == 0 {
-                    println!("Max retries exceeded for startup {}", startup.name);
+            })
+            .buffer_unordered(CONCURRENCY)
+            .collect()
+            .await;
+
+        // Sort by original index and collect taglines
+        let mut sorted_results: Vec<(usize, Result<String, _>)> = results.into_iter().collect();
+        sorted_results.sort_by_key(|(i, _)| *i);
+
+        let mut new_taglines = Vec::new();
+        for (_, result) in sorted_results {
+            match result {
+                Ok(tagline) => {
+                    new_taglines.push(tagline);
+                }
+                Err(e) => {
+                    eprintln!("Fatal: failed to normalize tagline: {e}");
                     return;
                 }
-            };
-            new_taglines.push(tagline.clone());
-            tagline
-        };
-
-        println!("{normalized_tagline}");
-
-        let mut normalized_startup = startup.clone();
-        normalized_startup.tagline = normalized_tagline;
-        normalized_startups.push(normalized_startup);
-
-        // Save cache every 10 items
-        if i % 10 == 9 && !new_taglines.is_empty() {
-            cached_taglines.extend(new_taglines.clone());
-            std::fs::write("cached_taglines.txt", cached_taglines.join("\n")).unwrap();
-            new_taglines.clear();
+            }
         }
+
+        // Update cache
+        let mut all_taglines: Vec<String> = cached_taglines[..cached_count].to_vec();
+        all_taglines.extend(new_taglines.iter().cloned());
+        std::fs::write("cached_taglines.txt", all_taglines.join("\n")).unwrap();
+
+        // Build normalized startups for new entries
+        for (startup, tagline) in new_startups.iter().zip(new_taglines) {
+            let mut s = startup.clone();
+            s.tagline = tagline;
+            normalized_startups.push(s);
+        }
+
+        println!("  Done in {}", format_duration(start.elapsed().as_secs_f64()));
     }
 
-    // Save any remaining new taglines
-    if !new_taglines.is_empty() {
-        cached_taglines.extend(new_taglines);
-        std::fs::write("cached_taglines.txt", cached_taglines.join("\n")).unwrap();
-    }
-
-    println!("Generating embeddings...");
+    println!("[3/4] Generating embeddings...");
+    let embed_start = Instant::now();
     let mut model = TextEmbedding::try_new(Default::default()).unwrap();
 
-    let embeddings = model
-        .embed(
-            normalized_startups.iter().map(|x| &x.tagline).collect(),
-            None,
-        )
-        .unwrap();
+    let taglines: Vec<String> = normalized_startups.iter().map(|x| x.tagline.clone()).collect();
+    let embeddings = model.embed(taglines, None).unwrap();
 
     let embeddings = Array2::from_shape_vec(
         (embeddings.len(), embeddings[0].len()),
@@ -173,49 +226,49 @@ async fn main() {
     .unwrap();
 
     let high_dim_embeddings = embeddings.clone();
+    println!("  Embeddings done in {}", format_duration(embed_start.elapsed().as_secs_f64()));
 
+    println!("[4/4] Reducing dimensions (PaCMAP)...");
+    let pacmap_start = Instant::now();
     let config = Configuration::builder().embedding_dimensions(2).build();
-
     let (embeddings, _) = fit_transform(embeddings.view(), config).unwrap();
+
     let mut min_val = f32::MAX;
     let mut max_val = f32::MIN;
     for embedding in &embeddings {
         min_val = min_val.min(*embedding);
         max_val = max_val.max(*embedding);
     }
-
     let range = max_val - min_val;
 
-    // normalize embeddings from 0 to 1
     let embeddings = embeddings
         .outer_iter()
         .map(|row| ((row[0] - min_val) / range, (row[1] - min_val) / range))
         .collect::<Vec<_>>();
+    println!("  PaCMAP done in {}", format_duration(pacmap_start.elapsed().as_secs_f64()));
 
     let startups = normalized_startups
         .into_iter()
         .zip(high_dim_embeddings.outer_iter())
         .zip(embeddings)
-        .map(|((s, emb), pos)| {
-            let embedding = emb.to_vec();
-            StartupWithPos {
-                link: s.company_link,
-                name: s.name,
-                tagline: s.tagline,
-                pos_x: pos.0,
-                pos_y: pos.1,
-                team_size: s.team_size.unwrap_or(0),
-                logo_url: s
-                    .logo_url
-                    .split('?')
-                    .next()
-                    .unwrap_or(&s.logo_url)
-                    .to_string(),
-                embedding,
-            }
+        .map(|((s, emb), pos)| StartupWithPos {
+            link: s.company_link,
+            name: s.name,
+            tagline: s.tagline,
+            pos_x: pos.0,
+            pos_y: pos.1,
+            team_size: s.team_size.unwrap_or(0),
+            logo_url: s.logo_url.split('?').next().unwrap_or(&s.logo_url).to_string(),
+            embedding: emb.to_vec(),
         })
         .collect::<Vec<_>>();
 
     let json = serde_json::to_string_pretty(&startups).unwrap();
     std::fs::write("startups.json", json).unwrap();
+
+    println!(
+        "Done! Wrote {} startups to startups.json (total: {})",
+        startups.len(),
+        format_duration(total_start.elapsed().as_secs_f64())
+    );
 }
