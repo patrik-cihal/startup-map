@@ -21,13 +21,9 @@ Y Combinator startups are positioned using AI embeddings so that companies with 
 - Logarithmic team size filter, similarity threshold filter
 - Compact list view with rank, logo, name, tagline, team size, and match %
 
-## Screenshots
+## Demo
 
-![Whole Map](screenshots/whole_map.png)
-
-![Focused Map](screenshots/focused_map.png)
-
-![Zoomed Map](screenshots/zoomed_map.png)
+![Demo](screenshots/demo.gif)
 
 ## Architecture
 
