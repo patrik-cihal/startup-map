@@ -1,11 +1,16 @@
 #!/bin/bash
 set -e
 
+cd "$(dirname "$0")"
+
+# Clean stale dx output
+rm -rf target/dx/visualization/release/web
+
 cd visualization
 dx build --platform web --release
 
-# Copy build output to repo root for GitHub Pages
-BUILD_DIR="target/dx/visualization/release/web/public"
+BUILD_DIR="../target/dx/visualization/release/web/public"
+
 cp "$BUILD_DIR/index.html" ../
 rm -rf ../assets
 cp -r "$BUILD_DIR/assets" ../
