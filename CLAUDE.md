@@ -19,7 +19,13 @@ Desktop mode includes both Search and Map modes with local FastEmbed for vector 
 dx serve --platform web          # Dev server
 dx build --platform web --release # Production build
 ```
-Web build only ships the Map view (no embedding/search). Config in `Dioxus.toml` sets base_path to "startup-map" for GitHub Pages.
+Web build only ships the Map view (no embedding/search). Config in `Dioxus.toml` sets base_path to "startup-map" for GitHub Pages. Requires Dioxus CLI (`cargo install dioxus-cli`).
+
+### Deploy to GitHub Pages
+```bash
+./deploy.sh   # Builds web release, copies artifacts to repo root
+```
+Then review with `git diff` and push to main. GitHub Pages serves from the repo root.
 
 ### Embedding Pipeline (Rust)
 ```bash
@@ -47,7 +53,9 @@ Dependencies are split by `target_arch` in Cargo.toml — desktop gets `tokio`, 
 **Python scraping** in `scraping/`:
 - Two-stage: first scrape batch listing pages for links, then fetch individual company JSON pages
 
-**Data flow**: scraping outputs -> embedding pipeline reads, embeds, reduces dimensions -> `visualization/assets/startups.json` consumed by app
+**Data flow**: `scraping/*.csv` → `embedding/` reads CSV, normalizes taglines (GPT), embeds (FastEmbed BGE-Small), reduces to 2D (PaCMAP) → outputs `embedding/startups.json` → copy to `visualization/assets/startups.json` → embedded in binary via `include_str!`
+
+**Single-file crates**: Both `visualization/src/main.rs` (~770 lines) and `embedding/src/main.rs` (~215 lines) are monolithic — all logic lives in one file per crate.
 
 ## Key Implementation Details
 
@@ -58,3 +66,5 @@ Dependencies are split by `target_arch` in Cargo.toml — desktop gets `tokio`, 
 - All startup data embedded directly in the binary via `include_str!`
 - UI styled with Tailwind CSS v4, JetBrains Mono font, dark tactical/terminal theme with green (#00ffaa) accent
 - `#[cfg(target_arch = "wasm32")]` / `#[cfg(not(...))]` used throughout to split web/desktop code paths
+- Embedding pipeline caches normalized taglines in `embedding/cached_taglines.txt` for resume-safe reruns
+- No test infrastructure — verify changes by running the app
