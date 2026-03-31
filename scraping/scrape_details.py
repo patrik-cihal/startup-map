@@ -50,10 +50,11 @@ def scrape_company(batch, link):
             founders.append(founder.get('full_name', 'N/A'))
         founders_str = ', '.join(founders) if founders else 'N/A'
 
-        logo_url = company.get('logo_url', 'N/A')
+        logo_url = company.get('small_logo_url', 'N/A')
         location = company.get('location', 'N/A')
         founded = company.get('year_founded', 'N/A')
         team_size = company.get('team_size', 'N/A')
+        status = company.get('ycdc_status', 'Active')
 
         # Update progress and print lengths
         with progress_lock:
@@ -73,7 +74,8 @@ def scrape_company(batch, link):
             'logo_url': logo_url,
             'location': location,
             'founded': founded,
-            'team_size': team_size
+            'team_size': team_size,
+            'status': status,
         }
     except Exception as e:
         with progress_lock:
@@ -117,7 +119,7 @@ if new_companies:
 # Merge existing + new and save
 all_results = existing_results + new_results
 if all_results:
-    fieldnames = ['batch', 'company_link', 'name', 'tagline', 'long_description', 'founders', 'logo_url', 'location', 'founded', 'team_size']
+    fieldnames = ['batch', 'company_link', 'name', 'tagline', 'long_description', 'founders', 'logo_url', 'location', 'founded', 'team_size', 'status']
     try:
         with open(output_csv, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)

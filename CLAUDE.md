@@ -53,7 +53,9 @@ Dependencies are split by `target_arch` in Cargo.toml — desktop gets `tokio`, 
 **Python scraping** in `scraping/`:
 - Two-stage: first scrape batch listing pages for links, then fetch individual company JSON pages
 
-**Data flow**: `scraping/*.csv` → `embedding/` reads CSV, normalizes taglines (GPT), embeds (FastEmbed BGE-Small), reduces to 2D (PaCMAP) → outputs `embedding/startups.json` → copy to `visualization/assets/startups.json` → embedded in binary via `include_str!`
+**Data flow**: `scraping/*.csv` → `embedding/` reads CSV, normalizes taglines (GPT), embeds (FastEmbed BGE-Small), reduces to 2D (PaCMAP) → outputs `embedding/startups.json` → visualization references it directly via `include_str!("../../embedding/startups.json")`
+
+**Patching**: `cargo r --release -p embedding -- --patch` updates metadata (founded, status, logo_url) in `startups.json` from the CSV without re-running the full embedding pipeline.
 
 **Single-file crates**: Both `visualization/src/main.rs` (~770 lines) and `embedding/src/main.rs` (~215 lines) are monolithic — all logic lives in one file per crate.
 

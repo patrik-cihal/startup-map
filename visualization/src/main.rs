@@ -12,6 +12,16 @@ use serde::{Deserialize, Serialize};
 
 const STARTUPS_JSON: &str = include_str!("../../embedding/startups.json");
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+enum CompanyStatus {
+    Active,
+    Public,
+    Acquired,
+    Inactive,
+    #[serde(other)]
+    Unknown,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct StartupWithPos {
     link: String,
@@ -20,8 +30,18 @@ struct StartupWithPos {
     pos_x: f32,
     pos_y: f32,
     team_size: u32,
+    #[serde(default)]
+    founded: u32,
+    #[serde(default)]
+    status: CompanyStatus,
     logo_url: String,
     embedding: Vec<f32>,
+}
+
+impl Default for CompanyStatus {
+    fn default() -> Self {
+        CompanyStatus::Active
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -69,6 +89,19 @@ async fn sleep_ms(ms: u64) {
 fn app() -> Element {
     let startups =
         use_signal(|| serde_json::from_str::<Vec<StartupWithPos>>(STARTUPS_JSON).unwrap());
+
+    // Compute year bounds once
+    let (min_year, max_year) = {
+        let s = startups.read();
+        let years: Vec<u32> = s.iter().map(|x| x.founded).filter(|&y| y > 0).collect();
+        let min = years.iter().copied().min().unwrap_or(2005);
+        let max = years.iter().copied().max().unwrap_or(2026);
+        (min, max)
+    };
+
+    // Shared filters (web + desktop)
+    let year_from = use_signal(move || min_year);
+    let year_to = use_signal(move || max_year);
 
     #[cfg(not(target_arch = "wasm32"))]
     let search_query = use_signal(|| String::new());
@@ -169,6 +202,10 @@ fn app() -> Element {
             sort_mode,
             min_team_size_filter,
             min_similarity_filter,
+            year_from,
+            year_to,
+            min_year,
+            max_year,
             view_mode,
             zoom,
             offset_x,
@@ -183,13 +220,12 @@ fn app() -> Element {
     };
     #[cfg(target_arch = "wasm32")]
     let main_content = rsx! {
-        MapView {
+        WebView {
             startups,
-            similarities: Signal::new(vec![]),
-            sort_by_similarity: false,
-            has_search: false,
-            min_team_size_filter: 0u32,
-            min_similarity_filter: 0.0f32,
+            year_from,
+            year_to,
+            min_year,
+            max_year,
             zoom,
             offset_x,
             offset_y,
@@ -248,6 +284,8 @@ fn MapView(
     has_search: bool,
     min_team_size_filter: u32,
     min_similarity_filter: f32,
+    year_from: u32,
+    year_to: u32,
     mut zoom: Signal<f32>,
     mut offset_x: Signal<f32>,
     mut offset_y: Signal<f32>,
@@ -337,9 +375,13 @@ fn MapView(
                     let mut indexed: Vec<(usize, f32)> = all_startups.iter().enumerate()
                         .map(|(i, _)| (i, sims.get(i).copied().unwrap_or(1.0)))
                         .filter(|(i, sim)| {
-                            let ts = all_startups[*i].team_size;
+                            let s = &all_startups[*i];
+                            // Year filter (0 = unknown, always show)
+                            if s.founded > 0 && (s.founded < year_from || s.founded > year_to) {
+                                return false;
+                            }
                             if sort_by_similarity {
-                                ts >= min_team_size_filter
+                                s.team_size >= min_team_size_filter
                             } else if has_search {
                                 *sim >= min_similarity_filter
                             } else {
@@ -398,11 +440,18 @@ fn MapView(
                                 } else if startup.team_size >= 25 {
                                     let dot_size = ((startup.team_size as f32).log10() * 2.0).max(2.0).min(8.0);
                                     let dot_alpha = sim.powf(3.0) * 0.6;
+                                    let dot_color = match startup.status {
+                                        CompanyStatus::Active => format!("rgba(0, 255, 170, {dot_alpha})"),
+                                        CompanyStatus::Public => format!("rgba(200, 170, 50, {dot_alpha})"),
+                                        CompanyStatus::Acquired => format!("rgba(100, 150, 255, {dot_alpha})"),
+                                        CompanyStatus::Inactive => format!("rgba(255, 80, 80, {dot_alpha})"),
+                                        CompanyStatus::Unknown => format!("rgba(150, 150, 150, {dot_alpha})"),
+                                    };
                                     rsx! {
                                         div {
                                             key: "{i}",
                                             class: "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-                                            style: "left: {startup.pos_x * 100.0 * z}%; top: {startup.pos_y * 100.0 * z}%; width: {dot_size}px; height: {dot_size}px; background-color: rgba(0, 255, 170, {dot_alpha});",
+                                            style: "left: {startup.pos_x * 100.0 * z}%; top: {startup.pos_y * 100.0 * z}%; width: {dot_size}px; height: {dot_size}px; background-color: {dot_color};",
                                         }
                                     }
                                 } else {
@@ -429,6 +478,10 @@ fn MainView(
     mut sort_mode: Signal<SortMode>,
     mut min_team_size_filter: Signal<u32>,
     mut min_similarity_filter: Signal<f32>,
+    mut year_from: Signal<u32>,
+    mut year_to: Signal<u32>,
+    min_year: u32,
+    max_year: u32,
     mut view_mode: Signal<ViewMode>,
     zoom: Signal<f32>,
     offset_x: Signal<f32>,
@@ -486,6 +539,8 @@ fn MainView(
                     }
                 }
 
+                div { class: "self-stretch", style: "border-left: 1px solid rgba(255, 255, 255, 0.1);" }
+
                 div {
                     class: "flex p-0.5",
                     style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
@@ -506,6 +561,8 @@ fn MainView(
                         "Similarity"
                     }
                 }
+
+                div { class: "self-stretch", style: "border-left: 1px solid rgba(255, 255, 255, 0.1);" }
 
                 div {
                     class: "flex items-center gap-2",
@@ -568,6 +625,74 @@ fn MainView(
                     }
                 }
 
+                div { class: "self-stretch", style: "border-left: 1px solid rgba(255, 255, 255, 0.1);" }
+
+                // Year range filter
+                {
+                    let total = (max_year - min_year) as f64;
+                    let left_pct = if total > 0.0 { ((year_from() - min_year) as f64 / total) * 100.0 } else { 0.0 };
+                    let right_pct = if total > 0.0 { ((year_to() - min_year) as f64 / total) * 100.0 } else { 100.0 };
+                    rsx! {
+                        div {
+                            class: "flex items-center gap-2",
+                            span {
+                                class: "text-xs whitespace-nowrap uppercase tracking-wider",
+                                style: "color: #a0a8a4;",
+                                "Founded:"
+                            }
+                            span {
+                                class: "text-xs whitespace-nowrap",
+                                style: "color: #a0a8a4; min-width: 28px; text-align: right;",
+                                "{year_from()}"
+                            }
+                            div {
+                                style: "position: relative; width: 128px; height: 14px;",
+                                // Track background
+                                div {
+                                    style: "position: absolute; top: 5px; left: 0; right: 0; height: 4px; background: #1a2a1f; border-radius: 2px;",
+                                }
+                                // Active range highlight
+                                div {
+                                    style: "position: absolute; top: 5px; height: 4px; background: rgba(0, 255, 170, 0.25); border-radius: 2px; left: {left_pct}%; right: {100.0 - right_pct}%;",
+                                }
+                                // From slider
+                                input {
+                                    r#type: "range",
+                                    min: "{min_year}",
+                                    max: "{max_year}",
+                                    value: "{year_from()}",
+                                    class: "dual-range",
+                                    oninput: move |ev| {
+                                        if let Ok(v) = ev.value().parse::<u32>() {
+                                            year_from.set(v.min(year_to()));
+                                        }
+                                    },
+                                }
+                                // To slider
+                                input {
+                                    r#type: "range",
+                                    min: "{min_year}",
+                                    max: "{max_year}",
+                                    value: "{year_to()}",
+                                    class: "dual-range",
+                                    oninput: move |ev| {
+                                        if let Ok(v) = ev.value().parse::<u32>() {
+                                            year_to.set(v.max(year_from()));
+                                        }
+                                    },
+                                }
+                            }
+                            span {
+                                class: "text-xs whitespace-nowrap",
+                                style: "color: #a0a8a4; min-width: 28px;",
+                                "{year_to()}"
+                            }
+                        }
+                    }
+                }
+
+                div { class: "self-stretch", style: "border-left: 1px solid rgba(255, 255, 255, 0.1);" }
+
                 div {
                     class: "flex p-0.5 ml-auto",
                     style: "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;",
@@ -594,6 +719,8 @@ fn MainView(
                     has_search,
                     min_team_size_filter: min_team_size_filter(),
                     min_similarity_filter: min_similarity_filter(),
+                    year_from: year_from(),
+                    year_to: year_to(),
                     zoom,
                     offset_x,
                     offset_y,
@@ -629,6 +756,14 @@ fn MainView(
                     let sims = similarities();
                     let all_startups = startups();
                     let mut indexed: Vec<(usize, f32)> = sims.iter().copied().enumerate().collect();
+
+                    // Year filter
+                    let yf = year_from();
+                    let yt = year_to();
+                    indexed.retain(|(idx, _)| {
+                        let f = all_startups[*idx].founded;
+                        f == 0 || (f >= yf && f <= yt)
+                    });
 
                     match sort_mode() {
                         SortMode::Similarity => {
@@ -684,6 +819,16 @@ fn MainView(
                                     class: "text-xs uppercase tracking-wider flex-1 hidden md:block",
                                     style: "color: #606860;",
                                     "Tagline"
+                                }
+                                span {
+                                    class: "text-xs uppercase tracking-wider w-16 text-right shrink-0 hidden md:block",
+                                    style: "color: #606860;",
+                                    "Founded"
+                                }
+                                span {
+                                    class: "text-xs uppercase tracking-wider w-16 text-right shrink-0 hidden md:block",
+                                    style: "color: #606860;",
+                                    "Status"
                                 }
                                 span {
                                     class: "text-xs uppercase tracking-wider w-16 text-right shrink-0",
@@ -754,6 +899,28 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, s
                 "{startup.tagline}"
             }
             span {
+                class: "text-xs w-16 text-right shrink-0 hidden md:block",
+                style: "color: #a0a8a4;",
+                if startup.founded > 0 { "{startup.founded}" } else { "—" }
+            }
+            span {
+                class: "text-xs w-16 text-right shrink-0 hidden md:block",
+                style: match startup.status {
+                    CompanyStatus::Active => "color: #7ec89a;",
+                    CompanyStatus::Public => "color: #c8aa32;",
+                    CompanyStatus::Acquired => "color: #6496ff;",
+                    CompanyStatus::Inactive => "color: #ff5050;",
+                    CompanyStatus::Unknown => "color: #969696;",
+                },
+                match startup.status {
+                    CompanyStatus::Active => "Active",
+                    CompanyStatus::Public => "Public",
+                    CompanyStatus::Acquired => "Acquired",
+                    CompanyStatus::Inactive => "Inactive",
+                    CompanyStatus::Unknown => "Unknown",
+                }
+            }
+            span {
                 class: "text-xs w-16 text-right shrink-0",
                 style: if is_team_sort { "color: #00ffaa;" } else { "color: #a0a8a4;" },
                 "{startup.team_size}"
@@ -764,6 +931,142 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, s
                     style: if !is_team_sort { "color: #00ffaa;" } else { "color: #a0a8a4;" },
                     "{match_pct}%"
                 }
+            }
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn WebView(
+    startups: Signal<Vec<StartupWithPos>>,
+    mut year_from: Signal<u32>,
+    mut year_to: Signal<u32>,
+    min_year: u32,
+    max_year: u32,
+    zoom: Signal<f32>,
+    offset_x: Signal<f32>,
+    offset_y: Signal<f32>,
+    target_zoom: Signal<f32>,
+    target_offset_x: Signal<f32>,
+    target_offset_y: Signal<f32>,
+    is_dragging: Signal<bool>,
+    last_mouse_x: Signal<f32>,
+    last_mouse_y: Signal<f32>,
+) -> Element {
+    rsx! {
+        div {
+            class: "flex-1 flex flex-col overflow-hidden",
+
+            // Filter toolbar
+            div {
+                class: "flex items-center gap-4 px-6 py-2 shrink-0 flex-wrap",
+                style: "border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);",
+
+                // Year range
+                {
+                    let total = (max_year - min_year) as f64;
+                    let left_pct = if total > 0.0 { ((year_from() - min_year) as f64 / total) * 100.0 } else { 0.0 };
+                    let right_pct = if total > 0.0 { ((year_to() - min_year) as f64 / total) * 100.0 } else { 100.0 };
+                    rsx! {
+                        div {
+                            class: "flex items-center gap-2",
+                            span {
+                                class: "text-xs whitespace-nowrap uppercase tracking-wider",
+                                style: "color: #a0a8a4;",
+                                "Founded:"
+                            }
+                            span {
+                                class: "text-xs whitespace-nowrap",
+                                style: "color: #a0a8a4; min-width: 28px; text-align: right;",
+                                "{year_from()}"
+                            }
+                            div {
+                                style: "position: relative; width: 128px; height: 14px;",
+                                div {
+                                    style: "position: absolute; top: 5px; left: 0; right: 0; height: 4px; background: #1a2a1f; border-radius: 2px;",
+                                }
+                                div {
+                                    style: "position: absolute; top: 5px; height: 4px; background: rgba(0, 255, 170, 0.25); border-radius: 2px; left: {left_pct}%; right: {100.0 - right_pct}%;",
+                                }
+                                input {
+                                    r#type: "range",
+                                    min: "{min_year}",
+                                    max: "{year_to()}",
+                                    value: "{year_from()}",
+                                    class: "dual-range",
+                                    oninput: move |ev| {
+                                        if let Ok(v) = ev.value().parse::<u32>() {
+                                            year_from.set(v);
+                                        }
+                                    },
+                                }
+                                input {
+                                    r#type: "range",
+                                    min: "{year_from()}",
+                                    max: "{max_year}",
+                                    value: "{year_to()}",
+                                    class: "dual-range",
+                                    oninput: move |ev| {
+                                        if let Ok(v) = ev.value().parse::<u32>() {
+                                            year_to.set(v);
+                                        }
+                                    },
+                                }
+                            }
+                            span {
+                                class: "text-xs whitespace-nowrap",
+                                style: "color: #a0a8a4; min-width: 28px;",
+                                "{year_to()}"
+                            }
+                        }
+                    }
+                }
+
+                // Legend
+                div {
+                    class: "flex items-center gap-3 ml-auto",
+                    div {
+                        class: "flex items-center gap-1",
+                        div { class: "w-2 h-2 rounded-full", style: "background: #00ffaa;" }
+                        span { class: "text-xs", style: "color: #a0a8a4;", "Active" }
+                    }
+                    div {
+                        class: "flex items-center gap-1",
+                        div { class: "w-2 h-2 rounded-full", style: "background: #c8aa32;" }
+                        span { class: "text-xs", style: "color: #a0a8a4;", "Public" }
+                    }
+                    div {
+                        class: "flex items-center gap-1",
+                        div { class: "w-2 h-2 rounded-full", style: "background: #6496ff;" }
+                        span { class: "text-xs", style: "color: #a0a8a4;", "Acquired" }
+                    }
+                    div {
+                        class: "flex items-center gap-1",
+                        div { class: "w-2 h-2 rounded-full", style: "background: #ff5050;" }
+                        span { class: "text-xs", style: "color: #a0a8a4;", "Inactive" }
+                    }
+                }
+            }
+
+            MapView {
+                startups,
+                similarities: Signal::new(vec![]),
+                sort_by_similarity: false,
+                has_search: false,
+                min_team_size_filter: 0u32,
+                min_similarity_filter: 0.0f32,
+                year_from: year_from(),
+                year_to: year_to(),
+                zoom,
+                offset_x,
+                offset_y,
+                target_zoom,
+                target_offset_x,
+                target_offset_y,
+                is_dragging,
+                last_mouse_x,
+                last_mouse_y,
             }
         }
     }

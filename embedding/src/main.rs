@@ -25,6 +25,8 @@ struct Startup {
     founded: Option<u32>,
     team_size: Option<u32>,
     long_description: String,
+    #[serde(default)]
+    status: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -35,8 +37,16 @@ struct StartupWithPos {
     pos_x: f32,
     pos_y: f32,
     team_size: u32,
+    #[serde(default)]
+    founded: u32,
+    #[serde(default = "default_status")]
+    status: String,
     logo_url: String,
     embedding: Vec<f32>,
+}
+
+fn default_status() -> String {
+    "Active".to_string()
 }
 
 const SYSTEM_PROMPT: &str = "You are an expert at writing clear, consistent startup taglines. Your task is to normalize startup taglines into a standard format that clearly describes what the company does, for whom, and how.
@@ -99,6 +109,12 @@ fn format_duration(secs: f64) -> String {
 async fn main() {
     dotenvy::dotenv().unwrap();
     let total_start = Instant::now();
+
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(|s| s.as_str()) == Some("--patch") {
+        patch_metadata();
+        return;
+    }
 
     let startups = csv::Reader::from_path("../scraping/yc_company_details.csv")
         .unwrap()
@@ -258,6 +274,8 @@ async fn main() {
             pos_x: pos.0,
             pos_y: pos.1,
             team_size: s.team_size.unwrap_or(0),
+            founded: s.founded.unwrap_or(0),
+            status: s.status.unwrap_or_else(|| "Active".to_string()),
             logo_url: s.logo_url.split('?').next().unwrap_or(&s.logo_url).to_string(),
             embedding: emb.to_vec(),
         })
@@ -271,4 +289,37 @@ async fn main() {
         startups.len(),
         format_duration(total_start.elapsed().as_secs_f64())
     );
+}
+
+fn patch_metadata() {
+    println!("Patching startups.json with metadata from CSV...");
+
+    let csv_startups: Vec<Startup> = csv::Reader::from_path("../scraping/yc_company_details.csv")
+        .unwrap()
+        .deserialize::<Startup>()
+        .map(|res| res.unwrap())
+        .collect();
+
+    // Build lookup by link
+    let mut csv_map: std::collections::HashMap<String, &Startup> = std::collections::HashMap::new();
+    for s in &csv_startups {
+        csv_map.insert(s.company_link.clone(), s);
+    }
+
+    let json_str = std::fs::read_to_string("startups.json").unwrap();
+    let mut startups: Vec<StartupWithPos> = serde_json::from_str(&json_str).unwrap();
+
+    let mut updated = 0;
+    for s in &mut startups {
+        if let Some(csv) = csv_map.get(&s.link) {
+            s.founded = csv.founded.unwrap_or(0);
+            s.status = csv.status.clone().unwrap_or_else(|| "Active".to_string());
+            s.logo_url = csv.logo_url.split('?').next().unwrap_or(&csv.logo_url).to_string();
+            updated += 1;
+        }
+    }
+
+    let json = serde_json::to_string_pretty(&startups).unwrap();
+    std::fs::write("startups.json", json).unwrap();
+    println!("Patched {updated}/{} startups", startups.len());
 }
