@@ -787,7 +787,7 @@ fn MainView(
 
                     rsx! {
                         div {
-                            class: "flex-1 overflow-y-auto p-6",
+                            class: "flex-1 overflow-y-auto p-6 mx-auto w-full max-w-5xl",
 
                             p {
                                 class: "text-xs mb-4 uppercase tracking-wider",
@@ -811,8 +811,8 @@ fn MainView(
                                     style: "color: #606860; width: 36px;",
                                 }
                                 span {
-                                    class: "text-xs uppercase tracking-wider flex-1",
-                                    style: "color: #606860;",
+                                    class: "text-xs uppercase tracking-wider shrink-0",
+                                    style: "color: #606860; width: 140px;",
                                     "Name"
                                 }
                                 span {
@@ -889,8 +889,8 @@ fn StartupRow(startup: StartupWithPos, similarity: f32, show_similarity: bool, s
             a {
                 href: "{startup.link}",
                 target: "_blank",
-                class: "text-xs font-medium truncate flex-1 no-underline transition-colors",
-                style: "color: #e0e4e2;",
+                class: "text-xs font-medium truncate no-underline transition-colors shrink-0",
+                style: "color: #e0e4e2; width: 140px;",
                 "{startup.name}"
             }
             span {
