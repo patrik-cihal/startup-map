@@ -57,16 +57,18 @@ Dependencies are split by `target_arch` in Cargo.toml — desktop gets `tokio`, 
 
 **Patching**: `cargo r --release -p embedding -- --patch` updates metadata (founded, status, logo_url) in `startups.json` from the CSV without re-running the full embedding pipeline.
 
-**Single-file crates**: Both `visualization/src/main.rs` (~770 lines) and `embedding/src/main.rs` (~215 lines) are monolithic — all logic lives in one file per crate.
+**Single-file crates**: Both `visualization/src/main.rs` (~1070 lines) and `embedding/src/main.rs` (~325 lines) are monolithic — all logic lives in one file per crate.
 
 ## Key Implementation Details
 
 - Visualization uses Dioxus signals for zoom/pan state with smooth animation (32ms async loop)
+- Company statuses: Active (#00ffaa), Public (#c8aa32 gold), Acquired (#6496ff), Inactive (#ff5050) — list view uses muted variants to avoid clashing with the accent green
 - Company filtering is zoom-level based: 8 thresholds mapping zoom ranges to minimum team_size (from 20000 down to 25)
 - Search (desktop only) uses cosine similarity between query embedding (FastEmbed) and stored 384-dim f32 vectors
-- Search results displayed as compact list view with sort by team size or similarity, logarithmic team size filter slider
+- Search results displayed as compact list view with sort by team size or similarity, logarithmic team size filter slider, founded year and colored status columns
 - All startup data embedded directly in the binary via `include_str!`
-- UI styled with Tailwind CSS v4, JetBrains Mono font, dark tactical/terminal theme with green (#00ffaa) accent
+- UI styled with Tailwind CSS v4 (source: `visualization/src/input.css`, compiled to `visualization/assets/tailwind.css`), JetBrains Mono font, dark tactical/terminal theme with green (#00ffaa) accent
+- Toolbar filter groups separated by vertical dividers; founded year uses a dual-range overlay slider (two `<input type="range">` overlaid with CSS `pointer-events` on thumbs, custom track via divs)
 - `#[cfg(target_arch = "wasm32")]` / `#[cfg(not(...))]` used throughout to split web/desktop code paths
 - Embedding pipeline caches normalized taglines in `embedding/cached_taglines.txt` for resume-safe reruns
 - No test infrastructure — verify changes by running the app
