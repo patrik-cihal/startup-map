@@ -27,6 +27,27 @@ struct Startup {
     long_description: String,
     #[serde(default)]
     status: Option<String>,
+    #[serde(default)]
+    batch: Option<String>,
+}
+
+impl Startup {
+    /// Return founded year, falling back to parsing the year from the batch field (e.g. "Summer 2021").
+    fn founded_year(&self) -> u32 {
+        if let Some(y) = self.founded {
+            if y > 0 {
+                return y;
+            }
+        }
+        if let Some(batch) = &self.batch {
+            for part in batch.split_whitespace() {
+                if let Ok(y) = part.parse::<u32>() {
+                    return y;
+                }
+            }
+        }
+        0
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -267,18 +288,20 @@ async fn main() {
         .into_iter()
         .zip(high_dim_embeddings.outer_iter())
         .zip(embeddings)
-        .map(|((s, emb), pos)| StartupWithPos {
+        .map(|((s, emb), pos)| {
+            let founded = s.founded_year();
+            StartupWithPos {
             link: s.company_link,
             name: s.name,
             tagline: s.tagline,
             pos_x: pos.0,
             pos_y: pos.1,
             team_size: s.team_size.unwrap_or(0),
-            founded: s.founded.unwrap_or(0),
+            founded,
             status: s.status.unwrap_or_else(|| "Active".to_string()),
             logo_url: s.logo_url.split('?').next().unwrap_or(&s.logo_url).to_string(),
             embedding: emb.to_vec(),
-        })
+        }})
         .collect::<Vec<_>>();
 
     let json = serde_json::to_string_pretty(&startups).unwrap();
@@ -312,7 +335,7 @@ fn patch_metadata() {
     let mut updated = 0;
     for s in &mut startups {
         if let Some(csv) = csv_map.get(&s.link) {
-            s.founded = csv.founded.unwrap_or(0);
+            s.founded = csv.founded_year();
             s.status = csv.status.clone().unwrap_or_else(|| "Active".to_string());
             s.logo_url = csv.logo_url.split('?').next().unwrap_or(&csv.logo_url).to_string();
             updated += 1;
